@@ -1,13 +1,10 @@
 import "./assets/App.css";
 import { Room } from "trystero/torrent";
-import Messages, {
-  Message,
-  MessageFromMe,
-  MessageToMe,
-  generateMsgID,
-} from "./messages";
-import { User } from "./User";
+
 import { useState, useRef } from "preact/hooks";
+import { Message, MessageFromMe, MessageToMe, User } from "./helpers/types";
+import { generateMsgID } from "./helpers/helpers";
+import Messages from "./messages";
 
 export function Chat(props: { room: Room; users: User[] }) {
   const { room, users } = props;

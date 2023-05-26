@@ -1,39 +1,12 @@
-import React, { useEffect } from "react";
-import { User } from "./User";
+import { useRef, useEffect } from "preact/hooks";
+import { User } from "./MainModal";
+import { Message } from "./helpers/types";
 
-export type Message = MessageFromMe | MessageToMe | MessageSystem;
-
-export interface MessageFromMe {
-  type: "fromMe";
-  msgId: string;
-  text: string;
-  sentAt: number;
-}
-
-export interface MessageToMe {
-  type: "toMe";
-  msgId: string;
-  text: string;
-  sentAt: number;
-  sentBy: string;
-  recievedAt: number;
-}
-
-export interface MessageSystem {
-  type: "system";
-  text: string;
-  sentAt: number;
-}
-
-interface IMessagesProps {
+export default function Messages(props: {
   messages: Message[];
   users: User[];
-}
-
-export const generateMsgID = () => Math.random().toString(36).substring(2, 15);
-
-export default function Messages(props: IMessagesProps) {
-  const lastMessage = React.useRef<HTMLDivElement>(null);
+}) {
+  const lastMessage = useRef<HTMLDivElement>(null);
   const { messages, users } = props;
   useEffect(() => {
     if (lastMessage.current)

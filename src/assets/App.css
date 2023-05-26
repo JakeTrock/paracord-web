@@ -145,6 +145,10 @@
   max-width: 30ch;
 }
 
+.horizontal {
+  display: flex;
+}
+
 .center {
   display: flex;
   justify-content: center;
