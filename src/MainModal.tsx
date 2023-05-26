@@ -1,18 +1,21 @@
-import "./assets/App.css";
+import { useEffect, useState } from "preact/hooks";
 import { Room } from "trystero/torrent";
-import { useExtendedState } from "./helpers/helpers";
-import { useState, useEffect } from "preact/hooks";
 import { Chat } from "./Chat";
 import Transfer from "./Transfer";
+import "./assets/App.css";
+import { useExtendedState } from "./helpers/helpers";
 import { User } from "./helpers/types";
+import pcdLogo from "/logo.svg";
 
 function RoomCard(props: { roomId: string; leaveRoom: () => void }) {
   const { roomId, leaveRoom } = props;
   return (
     <div className="card">
+      <img style={{ height: "6em" }} src={pcdLogo} />
       <h1>Paracord</h1>
-      <h2>Room ID</h2>
-      <p>{roomId}</p>
+      <hr />
+      <h4>Room ID</h4>
+      <h2>{roomId}</h2>
       <button onClick={leaveRoom}>Leave Room</button>
     </div>
   );

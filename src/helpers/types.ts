@@ -1,14 +1,14 @@
 export type FileMetaData = {
-     id: string;
-      owner?: string; 
-      name: string; 
-      size: number;
-    };
+  id: string;
+  owner?: string;
+  name: string;
+  size: number;
+};
 
 export interface User {
-    peerId: string;
-    name: string | "Anonymous";
-  }
+  peerId: string;
+  name: string | "Anonymous";
+}
 
 export type Message = MessageFromMe | MessageToMe | MessageSystem;
 

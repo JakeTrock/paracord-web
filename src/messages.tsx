@@ -1,6 +1,5 @@
-import { useRef, useEffect } from "preact/hooks";
-import { User } from "./MainModal";
-import { Message } from "./helpers/types";
+import { useEffect, useRef } from "preact/hooks";
+import { Message, User } from "./helpers/types";
 
 export default function Messages(props: {
   messages: Message[];

@@ -43,7 +43,7 @@ export function Chat(props: { room: Room; users: User[] }) {
 
   return (
     <>
-      <div className="card">
+      <div className="card" style={{ width: "100%" }}>
         <h2>Chat</h2>
         <div className="card">
           <Messages users={users} messages={messages} />

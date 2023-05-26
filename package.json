@@ -17,6 +17,14 @@
   "devDependencies": {
     "@preact/preset-vite": "^2.5.0",
     "@types/streamsaver": "^2.0.1",
+    "airbnb": "^0.0.2",
+    "eslint": "^8.41.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-jsx-a11y": "^6.7.1",
+    "eslint-plugin-react": "^7.32.2",
+    "prettier": "^2.8.8",
     "typescript": "^5.0.2",
     "vite": "^4.3.2"
   }
