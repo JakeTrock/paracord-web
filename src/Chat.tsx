@@ -1,9 +1,9 @@
-import "./assets/App.css";
 import { Room } from "trystero/torrent";
+import "./assets/App.css";
 
-import { useState, useRef } from "preact/hooks";
-import { Message, MessageFromMe, MessageToMe, User } from "./helpers/types";
+import { useRef, useState } from "preact/hooks";
 import { generateMsgID } from "./helpers/helpers";
+import { Message, MessageFromMe, MessageToMe, User } from "./helpers/types";
 import Messages from "./messages";
 
 export function Chat(props: { room: Room; users: User[] }) {
@@ -16,7 +16,8 @@ export function Chat(props: { room: Room; users: User[] }) {
   const messageBox = useRef<HTMLInputElement>(null);
 
   const sendChat = () => {
-    if (messageBox.current === null) return;
+    if (messageBox.current === null || messageBox.current.value.trim() === "")
+      return;
     const message = messageBox.current.value;
     const newMessage: MessageFromMe = {
       type: "fromMe",
@@ -47,7 +48,7 @@ export function Chat(props: { room: Room; users: User[] }) {
         <h2>Chat</h2>
         <div className="card">
           <Messages users={users} messages={messages} />
-          <div className="card">
+          <div className="horizontal">
             <input
               ref={messageBox}
               className="textbox"
@@ -57,8 +58,8 @@ export function Chat(props: { room: Room; users: User[] }) {
               placeholder="Type your message"
               onKeyDown={(e) => e.key === "Enter" && sendChat()}
             />
-            <button className="bigbutton" onClick={sendChat} type="button">
-              send
+            <button onClick={sendChat} type="button">
+              send ➔
             </button>
           </div>
         </div>

@@ -39,18 +39,23 @@ function UserManager(props: {
       />
       <h2>Peers</h2>
       <ul>
-        {peers.map(({ name, peerId }) => (
-          <li key={peerId}>
-            <h5>{name}</h5>
-            <p>{peerId}</p>
-          </li>
-        ))}
+        {peers.length ? (
+          peers.map(({ name, peerId }) => (
+            <li key={peerId}>
+              <h5>{name}</h5>
+              <p>{peerId}</p>
+            </li>
+          ))
+        ) : (
+          <h3>Loading...</h3>
+        )}
       </ul>
     </div>
   );
 }
 
 function MainModal(props: {
+  //TODO: add ratcheting encryption https://www.npmjs.com/package/@privacyresearch/libsignal-protocol-typescript
   room: Room;
   roomId: string;
   leaveRoom: () => void;

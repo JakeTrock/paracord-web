@@ -1,36 +1,135 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { BaseRoomConfig } from "trystero";
 import { Room, TorrentRoomConfig, joinRoom } from "trystero/torrent"; //TODO: Could use strategy conversion to also do firebase, but that's evil
 import MainModal from "./MainModal";
 import "./assets/App.css";
-import { generateRoomID } from "./helpers/helpers";
+import { generateRoomID, isRtcSupported } from "./helpers/helpers";
 import pcdLogo from "/logo.svg";
 
-const config: BaseRoomConfig & TorrentRoomConfig = {
+const installedTrackers = [
+  "wss://tracker.openwebtorrent.com",
+  "wss://tracker.btorrent.xyz",
+  "wss://tracker.files.fm:7073/announce",
+  "wss://qot.abiir.top:443/announce",
+]; //TODO: same as default, perhaps you could add your own?
+
+const defaultRoomConfig: BaseRoomConfig & TorrentRoomConfig = {
   appId: "paracord_chat",
-  trackerUrls: ["wss://tracker.openwebtorrent.com"], //TODO: MOAR
-  password: "password", //TODO: make this a prompt
+  trackerUrls: installedTrackers,
+  rtcConfig: {
+    iceServers: [
+      { urls: "stun:46.165.240.76:3478" },
+      { urls: "stun:108.61.211.199:3478" },
+      {
+        urls: "turn:46.165.240.76:3478",
+        credential: "asperTinO1",
+        username: "otrto",
+      },
+      {
+        urls: "turn:108.61.211.199:3478",
+        credential: "asperTinO1",
+        username: "otrto",
+      },
+    ],
+  },
 };
 
+const RTCSupport = isRtcSupported();
+
+function RoomCreator(props: {
+  bootStrapRoom: (id: string, password?: string) => void;
+}) {
+  const [passwordVisible, setPasswordVisible] = useState<boolean>(false);
+  const roomRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const { bootStrapRoom } = props;
+  return (
+    <>
+      <div className="headtext horizontal">
+        <img style={{ height: ".5em" }} src={pcdLogo} />
+        <h1 className="headtext">Paracord</h1>
+      </div>
+      <div className="center">
+        <div className="card">
+          <h2>Join a room</h2>
+          <div className="horizontal">
+            <h3>PD-</h3>
+            <input
+              ref={roomRef}
+              className="textbox"
+              name="userInput"
+              type="text"
+              autoComplete="off"
+              placeholder="Room ID"
+            />
+            <button
+              className="button"
+              onClick={() =>
+                roomRef.current && (roomRef.current.value = generateRoomID())
+              }
+            >
+              Random
+            </button>
+          </div>
+          <div className="horizontal">
+            <h3>Password(optional):</h3>
+            <input
+              ref={passwordRef}
+              className="textbox"
+              name="userInput"
+              type={passwordVisible ? "text" : "password"}
+              autoComplete="off"
+              placeholder="Password"
+            />
+            <button
+              className="button"
+              onClick={() => setPasswordVisible(!passwordVisible)}
+            >
+              {passwordVisible ? "Hide" : "Show"}
+            </button>
+          </div>
+          <button
+            className="button"
+            onClick={() =>
+              roomRef.current &&
+              bootStrapRoom(
+                roomRef.current.value,
+                passwordRef.current ? passwordRef.current.value : undefined
+              )
+            }
+          >
+            Join
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function App() {
-  //TODO: check if RTC is supported, and webtorrent trackers are reachable
   const [room, setRoom] = useState<Room | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
 
-  const bootStrapRoom = (id: string) => {
-    //TODO: encrypt system
+  const bootStrapRoom = (id: string, roomPassword?: string) => {
     if (!room) {
-      const newRoom = joinRoom(config, id);
+      const newRoom = joinRoom(
+        { ...defaultRoomConfig, password: roomPassword },
+        id
+      );
       setRoomId(id);
       setRoom(newRoom);
-      window.location.hash = id;
+      window.location.hash = `${id}?${roomPassword}`;
     }
   };
 
   useEffect(() => {
-    const targetRoomId = window.top && window.top.location.hash.slice(1);
-    if (targetRoomId) {
-      bootStrapRoom(targetRoomId);
+    if (window.top) {
+      const roomInfo = window.top.location.hash.slice(1).split("?");
+      if (roomInfo.length > 1) {
+        bootStrapRoom(roomInfo[0], roomInfo[1]);
+      } else {
+        bootStrapRoom(roomInfo[0]);
+      }
     }
   }, []);
 
@@ -45,10 +144,14 @@ function App() {
 
   return (
     <>
-      {room && roomId ? (
-        <>
-          <MainModal room={room} roomId={roomId} leaveRoom={leaveRoom} />
-        </>
+      {RTCSupport ? (
+        room && roomId ? (
+          <>
+            <MainModal room={room} roomId={roomId} leaveRoom={leaveRoom} />
+          </>
+        ) : (
+          <RoomCreator bootStrapRoom={bootStrapRoom} />
+        )
       ) : (
         <>
           <div className="headtext horizontal">
@@ -57,34 +160,12 @@ function App() {
           </div>
           <div className="center">
             <div className="card">
-              <h2>Join a room</h2>
-              <div className="horizontal">
-                <h1>PD-</h1>
-                <input
-                  className="textbox"
-                  name="userInput"
-                  type="text"
-                  autoComplete="off"
-                  placeholder="Room ID"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      bootStrapRoom(e.currentTarget.value);
-                    }
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="card">
-              <h2>Or create a room</h2>
-              <button
-                className="button"
-                onClick={() => {
-                  bootStrapRoom(generateRoomID());
-                }}
-              >
-                Create
-              </button>
+              <h2>Sorry, your browser is not supported</h2>
+              <p>
+                Paracord uses WebRTC to connect peers, and your browser does not
+                support it. Please use a browser that supports WebRTC, such as
+                Google Chrome.
+              </p>
             </div>
           </div>
         </>

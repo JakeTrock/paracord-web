@@ -24,59 +24,96 @@ function Transfer(props: { room: Room; users: User[] }) {
   //button(autoshare switch needed too I guess)
   //Theoretically couldnt you useeffect the userlist?
 
+  interface statusBar {
+    id: string;
+    toId: string;
+    fileName: string;
+    toMe: boolean;
+  }
+
   const [realFiles, setRealFiles] = useState<{ [id: string]: File }>({});
   const [requestableFiles, setRequestableFiles] = useState<{
     [userId: string]: FileMetaData[];
   }>({});
+  const [progressTrayStatuses, setProgressTrayStatuses] = useState<statusBar[]>(
+    []
+  );
 
   onFileProgress((percent, peerId, metadata) => {
-    const processedMeta = metadata as unknown as {
-      filename: string;
-      filesize: number;
-    };
-    console.log(
-      //TODO: progressbar
-      `${percent * 100}% done receiving ${
-        processedMeta.filename
-      } from ${peerId}`
-    );
+    const processedMeta = metadata as FileMetaData;
+
+    const progbar = document.getElementById(
+      `progbar-${processedMeta.id}-${peerId}`
+    ) as HTMLProgressElement;
+    if (progbar) progbar.value = percent * 100;
   });
 
   const requestFile = (fromUser: string, id: string) => {
-    sendFileRequest(id, fromUser);
+    const findName = requestableFiles[fromUser].find((f) => f.id === id);
+    if (findName) {
+      setProgressTrayStatuses((oldStatuses) => [
+        ...oldStatuses,
+        {
+          id: id as string,
+          toId: fromUser,
+          fileName: findName.name,
+          toMe: true,
+        },
+      ]);
+      sendFileRequest(id, fromUser);
+    } else {
+      alert("file not found!");
+    }
   };
 
   getFileRequest((id, peerId) => {
     console.log(`Received request for ${id} from ${peerId}`);
-    if ((id as unknown as string) in realFiles) {
-      const currentFile = realFiles[id as unknown as string];
+    if ((id as string) in realFiles) {
+      const currentFile = realFiles[id as string];
+      setProgressTrayStatuses((oldStatuses) => [
+        ...oldStatuses,
+        {
+          id: id as string,
+          toId: peerId,
+          fileName: currentFile.name,
+          toMe: false,
+        },
+      ]);
       sendFile(
         currentFile,
         peerId,
         {
-          filename: currentFile.name,
-          filesize: currentFile.size,
+          id: id as string,
+          name: currentFile.name,
+          size: currentFile.size,
         },
-        (percent, peerId) =>
-          console.log(
-            `${percent * 100}% done sending ${currentFile.name} to ${peerId}`
-          )
+        (percent, peerId) => {
+          const progbar = document.getElementById(
+            `progbar-${id}-${peerId}`
+          ) as HTMLProgressElement;
+          if (progbar) {
+            progbar.value = percent * 100;
+            if (percent === 1) {
+              document.getElementById(`progbar-${id}-${peerId}`)?.remove();
+            }
+          }
+        }
       );
     }
   });
 
   getFile((file, peerId, metadata) => {
-    const processedMeta = metadata as unknown as {
-      filename: string;
-      filesize: number;
-    };
-    console.log(`Received file ${processedMeta.filename} from ${peerId}`);
+    const processedMeta = metadata as FileMetaData;
+    console.log(`Received file ${processedMeta.name} from ${peerId}`);
+    setProgressTrayStatuses((oldStatuses) =>
+      oldStatuses.filter((s) => s.id !== processedMeta.id)
+    );
 
-    const fileStream = streamSaver.createWriteStream(processedMeta.filename, {
+    const fileStream = streamSaver.createWriteStream(processedMeta.name, {
       //TODO: may need to polyfill at some point
-      size: processedMeta.filesize, // (optional filesize)
+      size: processedMeta.size, // (optional filesize)
     });
-    const procFile = new Response(file as unknown as Uint8Array).body;
+    const procFile = new Response(file as Uint8Array).body;
     if (procFile) procFile.pipeTo(fileStream).catch(console.error);
   });
 
@@ -95,11 +132,19 @@ function Transfer(props: { room: Room; users: User[] }) {
     console.log(`Received file offer from ${peerId}`);
     setRequestableFiles((requestableFiles) => ({
       ...requestableFiles,
-      [peerId]: files as unknown as FileMetaData[],
+      [peerId]: files as FileMetaData[],
     }));
   });
 
   const removeRealFile = (id: string) => {
+    setProgressTrayStatuses(
+      (oldStatuses) => oldStatuses.filter((st) => st.id !== id) //remove indicator representation
+    );
+
+    Array.from(document.getElementsByClassName(id)).forEach(
+      (el) => el.remove() // remove indicator
+    );
+
     setRealFiles((files) => {
       const newFiles = { ...files };
       delete newFiles[id];
@@ -168,11 +213,15 @@ function Transfer(props: { room: Room; users: User[] }) {
                     <div className="filelistcontainer">
                       {files.map(({ id, name, size }) => (
                         <div className="filelistbox" key={id}>
-                          <h5>{name}</h5>
-                          <p>{fancyBytes(size)}</p>
-                          <button onClick={() => requestFile(userId, id)}>
-                            Request
-                          </button>
+                          <div className="horizontal">
+                            <div style={{ paddingRight: "1em" }}>
+                              <h5>{name}</h5>
+                              <p>{fancyBytes(size)}</p>
+                            </div>
+                            <button onClick={() => requestFile(userId, id)}>
+                              Request
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -180,6 +229,33 @@ function Transfer(props: { room: Room; users: User[] }) {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+
+        <div className="card" style={{ width: "100%" }}>
+          <h3>Active Transfers</h3>
+          <div className="filelistcontainer">
+            {progressTrayStatuses.map((status) => (
+              <div key={status.id} className={`filelistbox ${status.id}`}>
+                <h5
+                  style={{
+                    color: "var(--accent-major)",
+                    fontWeight: "600",
+                  }}
+                >
+                  {status.toMe
+                    ? ` ← ${status.fileName}`
+                    : `${status.fileName} →`}
+                </h5>
+                <progress
+                  id={`progbar-${status.id}-${status.toId}`}
+                  className="progressbar"
+                  value="0"
+                  min="0"
+                  max="100"
+                />
+              </div>
+            ))}
           </div>
         </div>
       </div>

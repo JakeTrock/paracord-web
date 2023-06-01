@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@privacyresearch/libsignal-protocol-typescript": "^0.0.16",
     "preact": "^10.13.1",
     "react-drag-drop-files": "^2.3.10",
     "streamsaver": "^2.0.6",
