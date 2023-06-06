@@ -3,7 +3,6 @@ import { Room } from "trystero/torrent";
 import { Chat } from "./Chat";
 import Transfer from "./Transfer";
 import "./assets/App.css";
-import { useExtendedState } from "./helpers/helpers";
 import { User } from "./helpers/types";
 import pcdLogo from "/logo.svg";
 
@@ -62,39 +61,77 @@ function MainModal(props: {
 }) {
   //TODO: when system refreshes on quit, it still gets mad that 'name' et al are recreated
   const { room, roomId, leaveRoom } = props;
-  const [myName, setMyName] = useExtendedState<string>("Anonymous");
+  const [myName, setMyName] = useState<string>("Anonymous");
   const [peers, setPeers] = useState<User[]>([]);
+  const [encryptionInfo, setEncryptionInfo] = useState<CryptoKey | undefined>(
+    undefined
+  );
 
   const [[sendName, getName]] = useState(() => room.makeAction("name"));
+  const [[sendUserKey, getUserKey]] = useState(() => room.makeAction("pubkey")); //seperated to save bandwidth
 
-  getName((name, peerId) =>
+  getName((name, peerId) => {
     setPeers((p) => {
       const newPeers = p.map((p) => {
-        if (p.peerId === peerId) p.name = name as unknown as string;
+        if (p.peerId === peerId) {
+          p.name = name as unknown as string;
+        }
         return p;
       });
       return newPeers;
-    })
-  );
+    });
+  });
+
+  getUserKey(async (publicKey, peerId) => {
+    if (publicKey) {
+      const importedKey = await window.crypto.subtle.importKey(
+        "jwk",
+        publicKey as unknown as JsonWebKey,
+        "AES-GCM",
+        true,
+        ["encrypt"]
+      );
+      setPeers((p) => {
+        const newPeers = p.map((p) => {
+          if (p.peerId === peerId) {
+            p.pubKey = importedKey;
+          }
+          return p;
+        });
+        return newPeers;
+      });
+    }
+  });
+
+  const syncInfo = async () => {
+    sendName(myName);
+    if (encryptionInfo) {
+      const publicKeyJwk = await window.crypto.subtle.exportKey(
+        "jwk",
+        encryptionInfo
+      );
+      sendUserKey(publicKeyJwk);
+    }
+  };
 
   useEffect(() => {
-    sendName(myName);
-  }, [myName, sendName]);
+    syncInfo();
+  }, [myName, encryptionInfo]);
 
-  room.onPeerJoin((peerId) => {
-    sendName(myName, peerId);
+  room.onPeerJoin(async (peerId) => {
+    syncInfo();
     setPeers((peers) => [...peers, { peerId, name: "Anonymous" }]);
   });
 
   room.onPeerLeave((peerId) =>
     setPeers((peers) => peers.filter((p) => p.peerId !== peerId))
   );
-
+  //TODO: convert GUI to grommet https://v2.grommet.io/components
   return (
     <>
       <div className="horizontal">
         <RoomCard roomId={roomId} leaveRoom={leaveRoom} />
-        <Chat room={room} users={peers} />
+        <Chat room={room} users={peers} encryptionInfo={encryptionInfo} />
         <UserManager myName={myName} setMyName={setMyName} peers={peers} />
       </div>
       <br />

@@ -2,40 +2,68 @@ import { Room } from "trystero/torrent";
 import "./assets/App.css";
 
 import { useRef, useState } from "preact/hooks";
-import { generateMsgID } from "./helpers/helpers";
+import shortid from "shortid";
 import { Message, MessageFromMe, MessageToMe, User } from "./helpers/types";
 import Messages from "./messages";
 
-export function Chat(props: { room: Room; users: User[] }) {
-  const { room, users } = props;
+export function Chat(props: {
+  room: Room;
+  users: User[];
+  encryptionInfo?: CryptoKey | undefined;
+}) {
+  const { room, users, encryptionInfo } = props;
 
   const [[sendChatAction, getChatAction]] = useState(() =>
     room.makeAction("chat")
   );
+
   const [messages, setMessages] = useState<Message[]>([]);
   const messageBox = useRef<HTMLInputElement>(null);
 
-  const sendChat = () => {
+  const sendChat = async () => {
     if (messageBox.current === null || messageBox.current.value.trim() === "")
       return;
     const message = messageBox.current.value;
     const newMessage: MessageFromMe = {
       type: "fromMe",
-      msgId: generateMsgID(),
+      msgId: shortid.generate(),
       text: message,
       sentAt: Date.now(),
     };
+    // const msgString = JSON.stringify(newMessage);
+    // const messagesToSend = users.map(async ({ peerId, pubKey }) => {
+    //   if (pubKey) {
+    //     encryptText(msgString, pubKey).then((encodedMessage) => {
+    //       console.log(encodedMessage);
+    //       sendChatAction(encodedMessage, [peerId]);
+    //     });
+    //   }
+    // });
+    // await Promise.all(messagesToSend);
     sendChatAction(newMessage);
     setMessages((messages) => [...messages, newMessage]);
     messageBox.current.value = "";
   };
 
-  getChatAction((data, peerId) => {
+  getChatAction(async (data, peerId) => {
+    // if (!encryptionInfo) return console.error("No private key");
+    // const dataDecoded = await decryptWithKp(
+    //   data as unknown as encodedMessage,
+    //   encryptionInfo
+    // )
+    //   .then((data) => {
+    //     console.log(data);
+    //     return JSON.parse(data) as MessageToMe;
+    //   })
+    //   .catch((e) => console.error(e));
+    // if (dataDecoded === undefined)
+    //   return console.error("Could not decrypt message");
+    const dataDecoded = data as MessageToMe;
     const newMessage: Message = {
       type: "toMe",
-      msgId: (data as unknown as MessageToMe).msgId,
-      text: (data as unknown as MessageToMe).text,
-      sentAt: (data as unknown as MessageToMe).sentAt,
+      msgId: dataDecoded.msgId,
+      text: dataDecoded.text,
+      sentAt: dataDecoded.sentAt,
       sentBy: peerId,
       recievedAt: Date.now(),
     };

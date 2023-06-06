@@ -2,6 +2,7 @@ import { useEffect, useRef } from "preact/hooks";
 import { Message, User } from "./helpers/types";
 
 export default function Messages(props: {
+  //TODO: seperate faceplates and functionality
   messages: Message[];
   users: User[];
 }) {

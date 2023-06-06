@@ -1,10 +1,11 @@
 import { useState } from "preact/hooks";
 import { FileUploader } from "react-drag-drop-files";
+import shortid from "shortid";
 import streamSaver from "streamsaver";
 import { Room } from "trystero/torrent";
 import "./assets/App.css";
 import CollapsibleContainer from "./helpers/Collapsible";
-import { fancyBytes, generateFileID } from "./helpers/helpers";
+import { fancyBytes } from "./helpers/helpers";
 import { FileMetaData, User } from "./helpers/types";
 
 function Transfer(props: { room: Room; users: User[] }) {
@@ -156,7 +157,7 @@ function Transfer(props: { room: Room; users: User[] }) {
     setRealFiles((files) => {
       const filesToAdd: { [key: string]: File } = {};
       Array.from(initialList).map(
-        (file) => (filesToAdd[generateFileID()] = file)
+        (file) => (filesToAdd[shortid.generate()] = file)
       );
       const newFiles = { ...files, ...filesToAdd };
       offerRequestableFiles(newFiles);

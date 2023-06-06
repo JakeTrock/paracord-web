@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "preact/hooks";
+import shortid from "shortid";
 import { BaseRoomConfig } from "trystero";
 import { Room, TorrentRoomConfig, joinRoom } from "trystero/torrent"; //TODO: Could use strategy conversion to also do firebase, but that's evil
 import MainModal from "./MainModal";
 import "./assets/App.css";
-import { generateRoomID, isRtcSupported } from "./helpers/helpers";
+import { isRtcSupported } from "./helpers/helpers";
 import pcdLogo from "/logo.svg";
 
 const installedTrackers = [
@@ -13,8 +14,10 @@ const installedTrackers = [
   "wss://qot.abiir.top:443/announce",
 ]; //TODO: same as default, perhaps you could add your own?
 
+export const tradeName = "paracord_chat";
+
 const defaultRoomConfig: BaseRoomConfig & TorrentRoomConfig = {
-  appId: "paracord_chat",
+  appId: tradeName,
   trackerUrls: installedTrackers,
   rtcConfig: {
     iceServers: [
@@ -65,7 +68,7 @@ function RoomCreator(props: {
             <button
               className="button"
               onClick={() =>
-                roomRef.current && (roomRef.current.value = generateRoomID())
+                roomRef.current && (roomRef.current.value = shortid.generate())
               }
             >
               Random

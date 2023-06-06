@@ -13,12 +13,6 @@ export function useExtendedState<T>(initialState: T) {
   return [state, setState, getLatestState] as const;
 }
 
-export const generateRoomID = () => (Math.random() + 1).toString(36).substring(2, 8);
-
-export const generateFileID = () => Math.random().toString(36).substring(2, 15);
-
-export const generateMsgID = () => Math.random().toString(36).substring(2, 15);
-
 export const fancyBytes = (bytes: number) => {
   const size = Math.floor(bytes / 1e6);
   return size < 1 ? `${Math.floor(bytes / 1e3)}Kb` : `${size}Mb`;

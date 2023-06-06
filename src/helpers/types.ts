@@ -7,6 +7,7 @@ export type FileMetaData = {
 
 export interface User {
   peerId: string;
+  pubKey?: CryptoKey;
   name: string | "Anonymous";
 }
 
