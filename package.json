@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "byte-base64": "^1.1.0",
     "preact": "^10.13.1",
     "react-drag-drop-files": "^2.3.10",
     "shortid": "^2.2.16",

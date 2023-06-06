@@ -3,13 +3,14 @@ import "./assets/App.css";
 
 import { useRef, useState } from "preact/hooks";
 import shortid from "shortid";
+import { decryptMessage, encryptMessage } from "./helpers/cryptoSuite";
 import { Message, MessageFromMe, MessageToMe, User } from "./helpers/types";
 import Messages from "./messages";
 
 export function Chat(props: {
   room: Room;
   users: User[];
-  encryptionInfo?: CryptoKey | undefined;
+  encryptionInfo?: CryptoKeyPair | undefined;
 }) {
   const { room, users, encryptionInfo } = props;
 
@@ -30,35 +31,33 @@ export function Chat(props: {
       text: message,
       sentAt: Date.now(),
     };
-    // const msgString = JSON.stringify(newMessage);
-    // const messagesToSend = users.map(async ({ peerId, pubKey }) => {
-    //   if (pubKey) {
-    //     encryptText(msgString, pubKey).then((encodedMessage) => {
-    //       console.log(encodedMessage);
-    //       sendChatAction(encodedMessage, [peerId]);
-    //     });
-    //   }
-    // });
-    // await Promise.all(messagesToSend);
-    sendChatAction(newMessage);
+    const msgString = JSON.stringify(newMessage);
+    const messagesToSend = users.map(async ({ peerId, pubKey }) => {
+      if (pubKey) {
+        await encryptMessage(pubKey, msgString).then((encodedMessage) => {
+          sendChatAction(encodedMessage, [peerId]);
+        });
+      }
+    });
+    await Promise.all(messagesToSend);
+    // sendChatAction(newMessage);
     setMessages((messages) => [...messages, newMessage]);
     messageBox.current.value = "";
   };
 
   getChatAction(async (data, peerId) => {
-    // if (!encryptionInfo) return console.error("No private key");
-    // const dataDecoded = await decryptWithKp(
-    //   data as unknown as encodedMessage,
-    //   encryptionInfo
-    // )
-    //   .then((data) => {
-    //     console.log(data);
-    //     return JSON.parse(data) as MessageToMe;
-    //   })
-    //   .catch((e) => console.error(e));
-    // if (dataDecoded === undefined)
-    //   return console.error("Could not decrypt message");
-    const dataDecoded = data as MessageToMe;
+    if (!encryptionInfo) return console.error("No private key");
+    const dataDecoded = await decryptMessage(
+      encryptionInfo.privateKey,
+      data as unknown as string
+    )
+      .then((data) => {
+        return JSON.parse(data) as MessageToMe;
+      })
+      .catch((e) => console.error(e));
+    if (dataDecoded === undefined)
+      return console.error("Could not decrypt message");
+    // const dataDecoded = data as MessageToMe;
     const newMessage: Message = {
       type: "toMe",
       msgId: dataDecoded.msgId,

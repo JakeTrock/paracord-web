@@ -3,6 +3,7 @@ import { Room } from "trystero/torrent";
 import { Chat } from "./Chat";
 import Transfer from "./Transfer";
 import "./assets/App.css";
+import { generateKeyPair } from "./helpers/cryptoSuite";
 import { User } from "./helpers/types";
 import pcdLogo from "/logo.svg";
 
@@ -63,9 +64,9 @@ function MainModal(props: {
   const { room, roomId, leaveRoom } = props;
   const [myName, setMyName] = useState<string>("Anonymous");
   const [peers, setPeers] = useState<User[]>([]);
-  const [encryptionInfo, setEncryptionInfo] = useState<CryptoKey | undefined>(
-    undefined
-  );
+  const [encryptionInfo, setEncryptionInfo] = useState<
+    CryptoKeyPair | undefined
+  >(undefined);
 
   const [[sendName, getName]] = useState(() => room.makeAction("name"));
   const [[sendUserKey, getUserKey]] = useState(() => room.makeAction("pubkey")); //seperated to save bandwidth
@@ -87,7 +88,7 @@ function MainModal(props: {
       const importedKey = await window.crypto.subtle.importKey(
         "jwk",
         publicKey as unknown as JsonWebKey,
-        "AES-GCM",
+        { name: "RSA-OAEP", hash: { name: "SHA-256" } },
         true,
         ["encrypt"]
       );
@@ -108,7 +109,7 @@ function MainModal(props: {
     if (encryptionInfo) {
       const publicKeyJwk = await window.crypto.subtle.exportKey(
         "jwk",
-        encryptionInfo
+        encryptionInfo.publicKey
       );
       sendUserKey(publicKeyJwk);
     }
@@ -118,6 +119,10 @@ function MainModal(props: {
     syncInfo();
   }, [myName, encryptionInfo]);
 
+  useEffect(() => {
+    generateKeyPair().then((key) => setEncryptionInfo(key));
+  }, []);
+
   room.onPeerJoin(async (peerId) => {
     syncInfo();
     setPeers((peers) => [...peers, { peerId, name: "Anonymous" }]);
@@ -126,7 +131,6 @@ function MainModal(props: {
   room.onPeerLeave((peerId) =>
     setPeers((peers) => peers.filter((p) => p.peerId !== peerId))
   );
-  //TODO: convert GUI to grommet https://v2.grommet.io/components
   return (
     <>
       <div className="horizontal">
