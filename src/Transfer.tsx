@@ -61,7 +61,7 @@ function Transfer(props: { room: Room; users: User[] }) {
           toMe: true,
         },
       ]);
-      sendFileRequest(id, fromUser);
+      sendFileRequest(id, fromUser); //TODO: encrypt
     } else {
       alert("file not found!");
     }
@@ -81,6 +81,7 @@ function Transfer(props: { room: Room; users: User[] }) {
         },
       ]);
       sendFile(
+        //TODO: encrypt
         currentFile,
         peerId,
         {
@@ -126,7 +127,7 @@ function Transfer(props: { room: Room; users: User[] }) {
       name: file.name,
       size: file.size,
     }));
-    sendFileOffer(files);
+    sendFileOffer(files); //TODO: encrypt
   };
 
   getFileOffer((files, peerId) => {

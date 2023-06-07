@@ -55,7 +55,6 @@ function UserManager(props: {
 }
 
 function MainModal(props: {
-  //TODO: add ratcheting encryption https://www.npmjs.com/package/@privacyresearch/libsignal-protocol-typescript
   room: Room;
   roomId: string;
   leaveRoom: () => void;
