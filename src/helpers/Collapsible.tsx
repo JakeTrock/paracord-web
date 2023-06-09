@@ -2,6 +2,7 @@ import { VNode } from "preact";
 import { useState } from "preact/hooks";
 
 export default function CollapsibleContainer(props: {
+  //TODO: replaceme https://www.radix-ui.com/docs/primitives/components/collapsible#collapsible
   title: string;
   children: VNode<any>;
 }) {

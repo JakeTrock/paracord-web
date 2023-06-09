@@ -9,7 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@radix-ui/react-tabs": "^1.0.4",
     "byte-base64": "^1.1.0",
+    "dayjs": "^1.11.8",
+    "idb": "^7.1.1",
+    "mdi-preact": "^9.2.0",
     "preact": "^10.13.1",
     "react-drag-drop-files": "^2.3.10",
     "shortid": "^2.2.16",

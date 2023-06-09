@@ -11,26 +11,25 @@ export interface User {
   name: string | "Anonymous";
 }
 
-export type Message = MessageFromMe | MessageToMe | MessageSystem;
-
-export interface MessageFromMe {
-  type: "fromMe";
+export interface Message {
   msgId: string;
   text: string;
   sentAt: number;
-}
-
-export interface MessageToMe {
-  type: "toMe";
-  msgId: string;
-  text: string;
-  sentAt: number;
+  roomId: string;
   sentBy: string;
   recievedAt: number;
 }
 
-export interface MessageSystem {
-  type: "system";
-  text: string;
-  sentAt: number;
+export interface FileOffer {
+  id: string;
+  name: string;
+  size: number;
+  ownerId: string;
+}
+
+export interface FileProgress {
+  id: string;
+  name: string;
+  progress: number;
+  toMe: boolean;
 }

@@ -1,11 +1,21 @@
-import { useEffect, useState } from "preact/hooks";
+import * as Tabs from "@radix-ui/react-tabs";
+import ChatProcessing from "mdi-preact/ChatProcessingIcon";
+import Download from "mdi-preact/DownloadIcon";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { FileUploader } from "react-drag-drop-files";
 import { Room } from "trystero/torrent";
-import { Chat } from "./Chat";
-import Transfer from "./Transfer";
 import "./assets/App.css";
+import CollapsibleContainer from "./helpers/Collapsible";
+import ChatManager from "./helpers/TrysteroManagers/chatManager";
+import DBManager from "./helpers/TrysteroManagers/dbManager";
+import DownloadManager from "./helpers/TrysteroManagers/downloadManager";
 import { generateKeyPair } from "./helpers/cryptoSuite";
-import { User } from "./helpers/types";
+import { fancyBytes, useExtendedState } from "./helpers/helpers";
+import { FileOffer, FileProgress, Message, User } from "./helpers/types";
+import Messages from "./messages";
 import pcdLogo from "/logo.svg";
+
+const CACHE_LENGTH = 100;
 
 function RoomCard(props: { roomId: string; leaveRoom: () => void }) {
   const { roomId, leaveRoom } = props;
@@ -62,13 +72,44 @@ function MainModal(props: {
   //TODO: when system refreshes on quit, it still gets mad that 'name' et al are recreated
   const { room, roomId, leaveRoom } = props;
   const [myName, setMyName] = useState<string>("Anonymous");
-  const [peers, setPeers] = useState<User[]>([]);
+  const [peers, setPeers, asyncGetUsers] = useExtendedState<User[]>([]);
   const [encryptionInfo, setEncryptionInfo] = useState<
     CryptoKeyPair | undefined
+  >(undefined);
+  const [DBManagerInstance, setDBManagerInstance] = useState<
+    DBManager | undefined
+  >(undefined);
+  const [chatManagerInstance, setChatManagerInstance] = useState<
+    ChatManager | undefined
+  >(undefined);
+  const [downloadManagerInstance, setDownloadManagerInstance] = useState<
+    DownloadManager | undefined
   >(undefined);
 
   const [[sendName, getName]] = useState(() => room.makeAction("name"));
   const [[sendUserKey, getUserKey]] = useState(() => room.makeAction("pubkey")); //seperated to save bandwidth
+
+  const [messageQueue, setMessageQueue] = useState<Message[]>([]);
+  const [
+    requestableDownloads,
+    setRequestableDownloads,
+    asyncGetRequestableDownloads,
+  ] = useExtendedState<{
+    [key: string]: FileOffer[];
+  }>({});
+  const [progressQueue, setProgressQueue] = useState<FileProgress[]>([]);
+
+  const addToMessageQueue = (message: Message) => {
+    setMessageQueue((q) => {
+      const newQ = [...q, message];
+      if (newQ.length > CACHE_LENGTH) {
+        newQ.shift();
+      }
+      return newQ;
+    });
+  };
+
+  const messageBox = useRef<HTMLInputElement>(null);
 
   getName((name, peerId) => {
     setPeers((p) => {
@@ -118,8 +159,44 @@ function MainModal(props: {
     syncInfo();
   }, [myName, encryptionInfo]);
 
+  const initSystem = async () => {
+    const keyPair = await generateKeyPair(); //TODO: this should never be globally exposed
+    setEncryptionInfo(keyPair);
+    const dbm = new DBManager();
+    dbm
+      .initDb()
+      .then(() => setDBManagerInstance(dbm))
+      .then(() =>
+        dbm.getMessagesAfter(
+          //initialize message queue
+          roomId,
+          new Date(Date.now() - 86400000).getTime(),
+          CACHE_LENGTH
+        )
+      ) //TODO: remove when infinityscroll is implemented
+      .then((messages) => setMessageQueue(messages));
+
+    const cm = new ChatManager(
+      room,
+      dbm,
+      addToMessageQueue,
+      asyncGetUsers,
+      keyPair.privateKey
+    );
+    setChatManagerInstance(cm);
+
+    const dm = new DownloadManager(
+      room,
+      [asyncGetRequestableDownloads, setRequestableDownloads],
+      setProgressQueue,
+      asyncGetUsers,
+      keyPair.privateKey
+    );
+    setDownloadManagerInstance(dm);
+  };
+
   useEffect(() => {
-    generateKeyPair().then((key) => setEncryptionInfo(key));
+    initSystem();
   }, []);
 
   room.onPeerJoin(async (peerId) => {
@@ -132,13 +209,178 @@ function MainModal(props: {
   );
   return (
     <>
-      <div className="horizontal">
-        <RoomCard roomId={roomId} leaveRoom={leaveRoom} />
-        <Chat room={room} users={peers} encryptionInfo={encryptionInfo} />
-        <UserManager myName={myName} setMyName={setMyName} peers={peers} />
-      </div>
-      <br />
-      <Transfer room={room} users={peers} />
+      <Tabs.Root defaultValue="tab1">
+        <Tabs.Content value="tab1">
+          <div className="card" style={{ width: "100%" }}>
+            <h2>Chat</h2>
+            <div className="card">
+              <Messages users={peers} messageQueue={messageQueue} />
+              <div className="horizontal">
+                <input
+                  ref={messageBox}
+                  className="textbox"
+                  name="userInput"
+                  type="text"
+                  autoComplete="off"
+                  placeholder="Type your message"
+                  onKeyDown={(e) => {
+                    if (
+                      e.key === "Enter" &&
+                      messageBox.current !== null &&
+                      chatManagerInstance
+                    ) {
+                      chatManagerInstance.sendChat(
+                        messageBox.current.value,
+                        roomId
+                      );
+                      messageBox.current.value = "";
+                    }
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    if (messageBox.current !== null && chatManagerInstance) {
+                      chatManagerInstance.sendChat(
+                        messageBox.current.value,
+                        roomId
+                      );
+                      messageBox.current.value = "";
+                    }
+                  }}
+                  type="button"
+                >
+                  send ➔
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <UserManager myName={myName} setMyName={setMyName} peers={peers} />
+        </Tabs.Content>
+        <Tabs.Content value="tab2">
+          {downloadManagerInstance && (
+            <div className="card">
+              <h2>Transfer</h2>
+
+              <div className="horizontal">
+                <div className="card" style={{ width: "50%" }}>
+                  <h3>Send File</h3>
+                  <FileUploader
+                    multiple
+                    required
+                    handleChange={downloadManagerInstance.addRealFiles}
+                    name="file"
+                  >
+                    <div className="uploadbox">Drag &amp; Drop files here</div>
+                  </FileUploader>
+                  <div className="filelistcontainer">
+                    {downloadManagerInstance.realFiles &&
+                      Object.entries(downloadManagerInstance.realFiles).map(
+                        ([id, file]) => (
+                          <div className="filelistbox" key={id}>
+                            {file.name} <p>{fancyBytes(file.size)} </p>
+                            <button
+                              type="button"
+                              className="bigbutton"
+                              style={{ padding: "0.3em" }}
+                              onClick={() =>
+                                downloadManagerInstance.removeRealFile(id)
+                              }
+                            >
+                              ✖
+                            </button>
+                            <hr />
+                          </div>
+                        )
+                      )}
+                  </div>
+                </div>
+
+                <div className="card" style={{ width: "50%" }}>
+                  <h3>Request File</h3>
+                  <div className="filelistcontainer">
+                    {Object.entries(requestableDownloads).map(
+                      ([peerId, fileOffers]) => (
+                        <div className="filelistbox" key={peerId}>
+                          <CollapsibleContainer
+                            title={
+                              peers.find((u) => u.peerId === peerId)?.name ||
+                              "Anonymous"
+                            }
+                          >
+                            <div className="filelistcontainer">
+                              {fileOffers.map(({ id, name, size, ownerId }) => (
+                                <div className="filelistbox" key={id}>
+                                  <div className="horizontal">
+                                    <div style={{ paddingRight: "1em" }}>
+                                      <h5>{name}</h5>
+                                      <p>{fancyBytes(size)}</p>
+                                    </div>
+                                    <button
+                                      onClick={() =>
+                                        downloadManagerInstance.requestFile(
+                                          ownerId,
+                                          id
+                                        )
+                                      }
+                                    >
+                                      Request
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </CollapsibleContainer>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="card" style={{ width: "100%" }}>
+                <h3>Active Transfers</h3>
+                <div className="filelistcontainer">
+                  {/* {progressTrayStatuses.map((status) => (//TODO: fixme change to new sys
+                      <div
+                        key={status.id}
+                        className={`filelistbox ${status.id}`}
+                      >
+                        <h5
+                          style={{
+                            color: "var(--accent-major)",
+                            fontWeight: "600",
+                          }}
+                        >
+                          {status.toMe
+                            ? ` ← ${status.fileName}`
+                            : `${status.fileName} →`}
+                        </h5>
+                        <progress
+                          id={`progbar-${status.id}-${status.toId}`}
+                          className="progressbar"
+                          value="0"
+                          min="0"
+                          max="100"
+                        />
+                      </div>
+                    ))} */}
+                </div>
+              </div>
+            </div>
+          )}
+        </Tabs.Content>
+        <Tabs.List aria-label="tabs example">
+          <Tabs.Trigger value="tab1" title="Chat">
+            <ChatProcessing />
+          </Tabs.Trigger>
+          <Tabs.Trigger value="tab2" title="Downloads">
+            <Download />
+          </Tabs.Trigger>
+        </Tabs.List>
+      </Tabs.Root>
+
+      <RoomCard roomId={roomId} leaveRoom={leaveRoom} />
     </>
   );
 }
