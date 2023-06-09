@@ -11,11 +11,6 @@ interface CentralDB extends DBSchema {
     value: Message;
     indexes: { "by-room": string; "by-recieved": number };
   };
-  // fileoffers: {
-  //   value: FileOffer;
-  //   key: string;
-  //   indexes: { "by-user": string };
-  // };
 }
 
 export default class DBManager {
@@ -37,26 +32,9 @@ export default class DBManager {
         // Create an index on the 'date' property of the objects.
         messageStore.createIndex("by-room", "roomId");
         messageStore.createIndex("by-recieved", "recievedAt");
-
-        // const fileOfferStore = db.createObjectStore("fileoffers", {
-        //   keyPath: "id",
-        //   autoIncrement: false,
-        // });
-        // fileOfferStore.createIndex("by-user", "ownerId");
       },
     });
   }
-
-  // async getAllFileOffers(roomId: string) {
-  //   if (!this.database) throw new Error("Database not initialized");
-
-  //   const tx = this.database.transaction("fileoffers");
-  //   const store = tx.objectStore("fileoffers");
-  //   const fileOffers = await store.getAll(roomId);
-  //   await tx.done;
-
-  //   return fileOffers;
-  // }
 
   async addMessage(message: Message) {
     if (!this.database) throw new Error("Database not initialized");
@@ -69,27 +47,6 @@ export default class DBManager {
     return message;
   }
 
-  // async addFileOffers(fileOffers: FileOffer[]) {
-  //   if (!this.database) throw new Error("Database not initialized");
-
-  //   const tx = this.database.transaction("fileoffers", "readwrite");
-  //   const store = tx.objectStore("fileoffers");
-  //   //find all unique userids in fileoffers
-  //   const userIds = fileOffers
-  //     .filter((fileOffer, index, self) => {
-  //       return self.findIndex((f) => f.ownerId === fileOffer.ownerId) === index;
-  //     })
-  //     .map((fileOffer) => fileOffer.ownerId);
-  //   //delete all fileoffers for those users
-  //   const deletableOffers = userIds.map((userId) => store.delete(userId));
-  //   const addOffers = fileOffers.map((fileOffer) => store.add(fileOffer));
-  //   await Promise.all(deletableOffers);
-  //   await Promise.all(addOffers);
-  //   await tx.done;
-
-  //   return fileOffers;
-  // }
-
   async getMessagesAfter(roomId: string, after: number, limit: number) {
     if (!this.database) throw new Error("Database not initialized");
 
@@ -101,28 +58,6 @@ export default class DBManager {
 
     return messages.filter((message) => message.recievedAt > after);
   }
-
-  // async getFileOffers(userId: string) {
-  //   if (!this.database) throw new Error("Database not initialized");
-
-  //   const tx = this.database.transaction("fileoffers", "readonly");
-  //   const store = tx.objectStore("fileoffers");
-  //   const index = store.index("by-user");
-
-  //   const fileOffers = await index.getAll(userId);
-  //   await tx.done;
-
-  //   return fileOffers;
-  // }
-
-  // async deleteFileOffer(fileOfferId: string) {
-  //   if (!this.database) throw new Error("Database not initialized");
-
-  //   const tx = this.database.transaction("fileoffers", "readwrite");
-  //   const store = tx.objectStore("fileoffers");
-  //   await store.delete(fileOfferId);
-  //   await tx.done;
-  // }
 
   async deleteMessagesBefore(roomId: string, before: number) {
     if (!this.database) throw new Error("Database not initialized");

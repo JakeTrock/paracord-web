@@ -2,15 +2,13 @@ import { StateUpdater } from "preact/hooks";
 import shortid from "shortid";
 import streamSaver from "streamsaver";
 import { Room, selfId } from "trystero";
+import { decryptMessage, encryptMessage } from "../cryptoSuite";
 import { FileMetaData, FileOffer, FileProgress, User } from "../types";
 
 export default class DownloadManager {
   public realFiles: { [key: string]: File } | undefined = undefined;
   private sendFileRequest: (id: string, peerIds?: string | string[]) => void;
-  private sendFileOffer: (
-    files: FileOffer[],
-    peerIds?: string | string[]
-  ) => void;
+  private sendFileOffer: (files: string, peerIds?: string | string[]) => void;
   private getUsers: () => Promise<User[]>; //TODO: remove when user manager class added
   private requestableDownloads;
   private setProgressQueue: StateUpdater<FileProgress[]>;
@@ -57,33 +55,39 @@ export default class DownloadManager {
       });
     });
 
-    getFileRequest((id, peerId) => {
-      console.log(`Received request for ${id} from ${peerId}`);
-      if (this.realFiles && (id as string) in this.realFiles) {
-        const currentFile = this.realFiles[id as string];
+    getFileRequest((data, peerId) => {
+      decryptMessage(privateKey, data as unknown as string)
+        .then((data) => {
+          const id = data as string;
+          if (this.realFiles && (id as string) in this.realFiles) {
+            const currentFile = this.realFiles[id as string];
 
-        sendFile(
-          //TODO: encrypt
-          currentFile,
-          peerId,
-          {
-            id: id as string,
-            name: currentFile.name,
-            size: currentFile.size,
-          },
-          (percent, peerId) =>
-            setProgressQueue((prev) => {
-              const newProg = prev.filter((prog) => prog.id !== (id as string));
-              newProg.push({
+            sendFile(
+              //TODO: encrypt
+              currentFile,
+              peerId,
+              {
                 id: id as string,
                 name: currentFile.name,
-                progress: percent,
-                toMe: true,
-              });
-              return newProg;
-            })
-        );
-      }
+                size: currentFile.size,
+              },
+              (percent, peerId) =>
+                setProgressQueue((prev) => {
+                  const newProg = prev.filter(
+                    (prog) => prog.id !== (id as string)
+                  );
+                  newProg.push({
+                    id: id as string,
+                    name: currentFile.name,
+                    progress: percent,
+                    toMe: true,
+                  });
+                  return newProg;
+                })
+            );
+          }
+        })
+        .catch((e) => console.error(e));
     });
 
     getFile((file, peerId, metadata) => {
@@ -101,11 +105,16 @@ export default class DownloadManager {
       if (procFile) procFile.pipeTo(fileStream).catch(console.error);
     });
 
-    getFileOffer((files, peerId) => {
+    getFileOffer((data, peerId) => {
       console.log(`Received file offer from ${peerId}`);
-      setRequestableDownloads((priorDownloads) => {
-        return { ...priorDownloads, [peerId]: files as FileOffer[] };
-      });
+      decryptMessage(privateKey, data as unknown as string)
+        .then((data) => {
+          const files = JSON.parse(data) as FileOffer[];
+          setRequestableDownloads((priorDownloads) => {
+            return { ...priorDownloads, [peerId]: files as FileOffer[] };
+          });
+        })
+        .catch((e) => console.error(e));
     });
   }
 
@@ -126,13 +135,22 @@ export default class DownloadManager {
           } as FileProgress,
         ];
       });
-      this.sendFileRequest(id, fromUser); //TODO: encrypt
+
+      const pubKey = (await this.getUsers()).find(
+        (u) => u.peerId === fromUser
+      )?.pubKey;
+
+      if (pubKey) {
+        await encryptMessage(pubKey, id).then((encodedMessage) => {
+          this.sendFileRequest(encodedMessage, fromUser); //TODO: encrypt
+        });
+      }
     } else {
       alert("file not found!");
     }
   };
 
-  public offerRequestableFiles = (
+  public offerRequestableFiles = async (
     toOffer: { [id: string]: File } | undefined = this.realFiles
   ) => {
     if (!toOffer) return;
@@ -142,7 +160,17 @@ export default class DownloadManager {
       name: file.name,
       size: file.size,
     }));
-    this.sendFileOffer(files); //TODO: encrypt
+    const msgString = JSON.stringify(files);
+
+    const users = await this.getUsers();
+    const offersToSend = users.map(async ({ peerId, pubKey }) => {
+      if (pubKey) {
+        await encryptMessage(pubKey, msgString).then((encodedMessage) => {
+          this.sendFileOffer(encodedMessage, [peerId]);
+        });
+      }
+    });
+    await Promise.all(offersToSend);
   };
 
   public removeRealFile = (id: string) => {

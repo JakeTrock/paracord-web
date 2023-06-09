@@ -16,13 +16,13 @@ export default function Messages(props: {
     if (lastMessage.current)
       lastMessage.current.scrollIntoView({ behavior: "smooth", block: "end" });
   });
-
+  //TODO: infinite scroll, get scroll posn and request more messages if 100 from top
   return (
     <div className="filelistcontainer">
       {messageQueue
         .sort((a, b) => a.recievedAt - b.recievedAt)
         .map((message: Message, index) =>
-          message.sentBy === "system" ? ( //TODO: get scroll posn and request more messages if 20 from top
+          message.sentBy === "system" ? (
             <div
               key={index}
               className="filelistbox"
