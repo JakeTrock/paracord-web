@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useEffect, useRef } from "preact/hooks";
 import { selfId } from "trystero";
-import { Message, User } from "./helpers/types";
+import { Message, User } from "../helpers/types";
 
 dayjs.extend(relativeTime);
 

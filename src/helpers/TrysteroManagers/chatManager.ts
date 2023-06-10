@@ -10,13 +10,19 @@ export default class ChatManager {
   private dbManager: DBManager;
   private addToMessageQueue: (message: Message) => void;
 
-  constructor(
-    room: Room,
-    dbManager: DBManager,
-    addToMessageQueue: (message: Message) => void,
-    getUsers: () => Promise<User[]>,
-    privateKey: CryptoKey
-  ) {
+  constructor({
+    room,
+    dbManager,
+    addToMessageQueue,
+    getUsers,
+    privateKey,
+  }: {
+    room: Room;
+    dbManager: DBManager;
+    addToMessageQueue: (message: Message) => void;
+    getUsers: () => Promise<User[]>;
+    privateKey: CryptoKey;
+  }) {
     const [sendChatAction, getChatAction] = room.makeAction("chat");
     this.sendChatAction = sendChatAction;
     this.addToMessageQueue = addToMessageQueue;

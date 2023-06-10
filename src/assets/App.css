@@ -3,10 +3,9 @@
   border-radius: var(--border-radius);
   background: rgba(var(--card-rgb), 0);
   border: 1px solid rgba(var(--card-border-rgb), .8);
-  height: 15em;
   width: 100%;
-  overflow: overlay;
-  resize: vertical;
+  height: 32em;
+  overflow: scroll;
 }
 
 .progressbar {
@@ -54,6 +53,55 @@
   background: rgba(var(--card-rgb), 0.2);
   font-weight: 700;
   width: 100%;
+}
+
+.bottombar {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  height: 3em;
+  background-color: var(--background);
+  border-top: 1px solid var(--accent-major);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.sidebar {
+  top: 0;
+  right: 0;
+  width: 25%;
+  height: 100%;
+  background-color: var(--background-end-rgb);
+  border-left: 1px solid #eaeaea;
+  padding: 1em;
+  overflow-y: scroll;
+}
+
+.sidebar p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 30ch;
+}
+
+.sidebar h5 {
+  max-width: 30ch;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.tabbutton {
+  background-color: var(--background);
+  color: var(--accent-major);
+  border: none;
+  padding: 0.5em;
+  margin: 0.5em;
+  border-radius: 0.5em;
+  font-weight: 600;
+  font-size: 1.2em;
+  cursor: pointer;
+  transition: background-color 200ms;
 }
 
 .bigbutton {

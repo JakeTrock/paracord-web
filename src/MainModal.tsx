@@ -1,71 +1,21 @@
 import * as Tabs from "@radix-ui/react-tabs";
 import ChatProcessing from "mdi-preact/ChatProcessingIcon";
 import Download from "mdi-preact/DownloadIcon";
-import { useEffect, useRef, useState } from "preact/hooks";
-import { FileUploader } from "react-drag-drop-files";
-import { selfId } from "trystero";
-import { Room } from "trystero/torrent";
+import { useEffect, useState } from "preact/hooks";
+import { Room, selfId } from "trystero/torrent";
 import "./assets/App.css";
-import CollapsibleContainer from "./helpers/Collapsible";
 import ChatManager from "./helpers/TrysteroManagers/chatManager";
 import DBManager from "./helpers/TrysteroManagers/dbManager";
 import DownloadManager from "./helpers/TrysteroManagers/downloadManager";
 import { generateKeyPair } from "./helpers/cryptoSuite";
-import { fancyBytes, useExtendedState } from "./helpers/helpers";
+import { useExtendedState } from "./helpers/helpers";
 import { FileOffer, FileProgress, Message, User } from "./helpers/types";
-import Messages from "./messages";
-import pcdLogo from "/logo.svg";
+import { ChatView } from "./views/ChatView";
+import { DownloadView } from "./views/DownloadView";
+import { RoomCard } from "./views/RoomCard";
+import { UserManager } from "./views/UserManager";
 
 const CACHE_LENGTH = 100;
-
-function RoomCard(props: { roomId: string; leaveRoom: () => void }) {
-  const { roomId, leaveRoom } = props;
-  return (
-    <div className="card">
-      <img style={{ height: "6em" }} src={pcdLogo} />
-      <h1>Paracord</h1>
-      <hr />
-      <h4>Room ID</h4>
-      <h2>{roomId}</h2>
-      <button onClick={leaveRoom}>Leave Room</button>
-    </div>
-  );
-}
-
-function UserManager(props: {
-  myName: string;
-  myId: string;
-  setMyName: (name: string) => void;
-  peers: User[];
-}) {
-  const { myName, myId, setMyName, peers } = props;
-  return (
-    <div className="card">
-      <h2>You</h2>
-      <input
-        type="text"
-        value={myName}
-        autocapitalize={"off"}
-        autoComplete={"off"}
-        onChange={(e) => setMyName(e.currentTarget.value)}
-      />
-      <p>{myId}</p>
-      <h2>Peers</h2>
-      <ul>
-        {peers.length ? (
-          peers.map(({ name, peerId }) => (
-            <li key={peerId}>
-              <h5>{name}</h5>
-              <p>{peerId}</p>
-            </li>
-          ))
-        ) : (
-          <h3>Loading...</h3>
-        )}
-      </ul>
-    </div>
-  );
-}
 
 function MainModal(props: {
   room: Room;
@@ -78,9 +28,6 @@ function MainModal(props: {
   const [peers, setPeers, asyncGetUsers] = useExtendedState<User[]>([]);
   const [encryptionInfo, setEncryptionInfo] = useState<
     CryptoKeyPair | undefined
-  >(undefined);
-  const [DBManagerInstance, setDBManagerInstance] = useState<
-    DBManager | undefined
   >(undefined);
   const [chatManagerInstance, setChatManagerInstance] = useState<
     ChatManager | undefined
@@ -114,8 +61,6 @@ function MainModal(props: {
       return newQ;
     });
   };
-
-  const messageBox = useRef<HTMLInputElement>(null);
 
   getName((name, peerId) => {
     setPeers((p) => {
@@ -171,7 +116,6 @@ function MainModal(props: {
     const dbm = new DBManager();
     dbm
       .initDb()
-      .then(() => setDBManagerInstance(dbm))
       .then(() =>
         dbm.getMessagesAfter(
           //initialize message queue
@@ -182,23 +126,23 @@ function MainModal(props: {
       ) //TODO: remove when infinityscroll is implemented
       .then((messages) => setMessageQueue(messages));
 
-    const cm = new ChatManager(
+    const cm = new ChatManager({
       room,
-      dbm,
+      dbManager: dbm,
       addToMessageQueue,
-      asyncGetUsers,
-      keyPair.privateKey
-    );
+      getUsers: asyncGetUsers,
+      privateKey: keyPair.privateKey,
+    });
     setChatManagerInstance(cm);
 
-    const dm = new DownloadManager(
+    const dm = new DownloadManager({
       room,
-      [asyncGetRealFiles, setRealFiles],
-      [asyncGetRequestableDownloads, setRequestableDownloads],
+      realFiles: [asyncGetRealFiles, setRealFiles],
+      downloadCache: [asyncGetRequestableDownloads, setRequestableDownloads],
       setProgressQueue,
       asyncGetUsers,
-      keyPair.privateKey
-    );
+      privateKey: keyPair.privateKey,
+    });
     setDownloadManagerInstance(dm);
   };
 
@@ -227,178 +171,46 @@ function MainModal(props: {
   });
   return (
     <>
+      <RoomCard roomId={roomId} leaveRoom={leaveRoom} />
       <Tabs.Root defaultValue="tab1">
-        <Tabs.Content value="tab1">
-          <div className="card" style={{ width: "100%" }}>
-            <h2>Chat</h2>
-            <div className="card">
-              <Messages users={peers} messageQueue={messageQueue} />
-              <div className="horizontal">
-                <input
-                  ref={messageBox}
-                  className="textbox"
-                  name="userInput"
-                  type="text"
-                  autoComplete="off"
-                  placeholder="Type your message"
-                  onKeyDown={(e) => {
-                    if (
-                      e.key === "Enter" &&
-                      messageBox.current !== null &&
-                      chatManagerInstance
-                    ) {
-                      chatManagerInstance.sendChat(
-                        messageBox.current.value,
-                        roomId
-                      );
-                      messageBox.current.value = "";
-                    }
-                  }}
-                />
-                <button
-                  onClick={() => {
-                    if (messageBox.current !== null && chatManagerInstance) {
-                      chatManagerInstance.sendChat(
-                        messageBox.current.value,
-                        roomId
-                      );
-                      messageBox.current.value = "";
-                    }
-                  }}
-                  type="button"
-                >
-                  send ➔
-                </button>
-              </div>
-            </div>
+        <div className="horizontal">
+          <div style={{ width: "80%", height: "100%" }}>
+            <Tabs.Content value="tab1">
+              <ChatView
+                messageQueue={messageQueue}
+                peers={peers}
+                chatManagerInstance={chatManagerInstance}
+                roomId={roomId}
+              />
+            </Tabs.Content>
+            <Tabs.Content value="tab2">
+              <DownloadView
+                progressQueue={progressQueue}
+                downloadManagerInstance={downloadManagerInstance}
+                requestableDownloads={requestableDownloads}
+                realFiles={realFiles}
+                peers={peers}
+              />
+            </Tabs.Content>
           </div>
-
           <UserManager
             myId={selfId}
             myName={myName}
             setMyName={setMyName}
             peers={peers}
           />
-        </Tabs.Content>
-        <Tabs.Content value="tab2">
-          {downloadManagerInstance && (
-            <div className="card">
-              <h2>Transfer</h2>
-
-              <div className="horizontal">
-                <div className="card" style={{ width: "50%" }}>
-                  <h3>Send File</h3>
-                  <FileUploader
-                    multiple
-                    required
-                    handleChange={downloadManagerInstance.addRealFiles}
-                    name="file"
-                  >
-                    <div className="uploadbox">Drag &amp; Drop files here</div>
-                  </FileUploader>
-                  <div className="filelistcontainer">
-                    {realFiles &&
-                      Object.entries(realFiles).map(([id, file]) => (
-                        <div className="filelistbox" key={id}>
-                          {file.name} <p>{fancyBytes(file.size)} </p>
-                          <button
-                            type="button"
-                            className="bigbutton"
-                            style={{ padding: "0.3em" }}
-                            onClick={() =>
-                              downloadManagerInstance.removeRealFile(id)
-                            }
-                          >
-                            ✖
-                          </button>
-                          <hr />
-                        </div>
-                      ))}
-                  </div>
-                </div>
-
-                <div className="card" style={{ width: "50%" }}>
-                  <h3>Request File</h3>
-                  <div className="filelistcontainer">
-                    {requestableDownloads &&
-                      Object.entries(requestableDownloads).map(
-                        ([peerId, fileOffers]) => (
-                          <div className="filelistbox" key={peerId}>
-                            <CollapsibleContainer
-                              title={
-                                peers.find((u) => u.peerId === peerId)?.name ||
-                                "Anonymous"
-                              }
-                            >
-                              <div className="filelistcontainer">
-                                {fileOffers.map(
-                                  ({ id, name, size, ownerId }) => (
-                                    <div className="filelistbox" key={id}>
-                                      <div className="horizontal">
-                                        <div style={{ paddingRight: "1em" }}>
-                                          <h5>{name}</h5>
-                                          <p>{fancyBytes(size)}</p>
-                                        </div>
-                                        <button
-                                          onClick={() =>
-                                            downloadManagerInstance.requestFile(
-                                              ownerId,
-                                              id
-                                            )
-                                          }
-                                        >
-                                          Request
-                                        </button>
-                                      </div>
-                                    </div>
-                                  )
-                                )}
-                              </div>
-                            </CollapsibleContainer>
-                          </div>
-                        )
-                      )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="card" style={{ width: "100%" }}>
-                <h3>Active Transfers</h3>
-                <div className="filelistcontainer">
-                  {progressQueue.map((status) => (
-                    <div key={status.id} className={`filelistbox ${status.id}`}>
-                      <h5
-                        style={{
-                          color: "var(--accent-major)",
-                          fontWeight: "600",
-                        }}
-                      >
-                        {status.toMe ? ` ← ${status.name}` : `${status.name} →`}
-                      </h5>
-                      <progress
-                        className="progressbar"
-                        value={status.progress * 100}
-                        min="0"
-                        max="100"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </Tabs.Content>
-        <Tabs.List aria-label="tabs example">
-          <Tabs.Trigger value="tab1" title="Chat">
-            <ChatProcessing />
-          </Tabs.Trigger>
-          <Tabs.Trigger value="tab2" title="Downloads">
-            <Download />
-          </Tabs.Trigger>
-        </Tabs.List>
+        </div>
+        <div className="bottombar">
+          <Tabs.List aria-label="tabs example">
+            <Tabs.Trigger className="tabbutton" value="tab1" title="Chat">
+              <ChatProcessing />
+            </Tabs.Trigger>
+            <Tabs.Trigger className="tabbutton" value="tab2" title="Downloads">
+              <Download />
+            </Tabs.Trigger>
+          </Tabs.List>
+        </div>
       </Tabs.Root>
-
-      <RoomCard roomId={roomId} leaveRoom={leaveRoom} />
     </>
   );
 }

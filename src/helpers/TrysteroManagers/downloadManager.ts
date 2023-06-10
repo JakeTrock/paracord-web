@@ -14,8 +14,15 @@ export default class DownloadManager {
   private requestableDownloads;
   private setProgressQueue: StateUpdater<FileProgress[]>;
 
-  constructor(
-    room: Room,
+  constructor({
+    room,
+    realFiles,
+    downloadCache,
+    setProgressQueue,
+    asyncGetUsers, //TODO: remove when user manager class added
+    privateKey,
+  }: {
+    room: Room;
     realFiles: [
       () => Promise<{
         [key: string]: File;
@@ -23,7 +30,7 @@ export default class DownloadManager {
       StateUpdater<{
         [key: string]: File;
       }>
-    ],
+    ];
     downloadCache: [
       () => Promise<{
         [key: string]: FileOffer[];
@@ -31,11 +38,11 @@ export default class DownloadManager {
       StateUpdater<{
         [key: string]: FileOffer[];
       }>
-    ],
-    setProgressQueue: StateUpdater<FileProgress[]>,
-    asyncGetUsers: () => Promise<User[]>, //TODO: remove when user manager class added
-    privateKey: CryptoKey
-  ) {
+    ];
+    setProgressQueue: StateUpdater<FileProgress[]>;
+    asyncGetUsers: () => Promise<User[]>; //TODO: remove when user manager class added
+    privateKey: CryptoKey;
+  }) {
     const [sendFile, getFile, onFileProgress] = room.makeAction("transfer");
     const [sendFileRequest, getFileRequest] = room.makeAction("fileRequest");
     const [sendFileOffer, getFileOffer] = room.makeAction("fileOffer");
