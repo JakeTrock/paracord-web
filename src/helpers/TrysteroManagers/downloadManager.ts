@@ -6,7 +6,8 @@ import { decryptMessage, encryptMessage } from "../cryptoSuite";
 import { FileMetaData, FileOffer, FileProgress, User } from "../types";
 
 export default class DownloadManager {
-  public realFiles: { [key: string]: File } | undefined = undefined;
+  private getRealFiles: () => Promise<{ [key: string]: File }>;
+  private setRealFiles: StateUpdater<{ [key: string]: File }>;
   private sendFileRequest: (id: string, peerIds?: string | string[]) => void;
   private sendFileOffer: (files: string, peerIds?: string | string[]) => void;
   private getUsers: () => Promise<User[]>; //TODO: remove when user manager class added
@@ -15,6 +16,14 @@ export default class DownloadManager {
 
   constructor(
     room: Room,
+    realFiles: [
+      () => Promise<{
+        [key: string]: File;
+      }>,
+      StateUpdater<{
+        [key: string]: File;
+      }>
+    ],
     downloadCache: [
       () => Promise<{
         [key: string]: FileOffer[];
@@ -35,6 +44,10 @@ export default class DownloadManager {
     this.setProgressQueue = setProgressQueue;
 
     const [requestableDownloads, setRequestableDownloads] = downloadCache;
+
+    const [getRealFiles, setRealFiles] = realFiles;
+    this.getRealFiles = getRealFiles;
+    this.setRealFiles = setRealFiles;
 
     this.requestableDownloads = requestableDownloads;
 
@@ -57,10 +70,12 @@ export default class DownloadManager {
 
     getFileRequest((data, peerId) => {
       decryptMessage(privateKey, data as unknown as string)
-        .then((data) => {
+        .then(async (data) => {
           const id = data as string;
-          if (this.realFiles && (id as string) in this.realFiles) {
-            const currentFile = this.realFiles[id as string];
+          console.log(`Received file request from ${peerId} for ${id}`);
+          const realFiles = await this.getRealFiles();
+          if (realFiles && (id as string) in realFiles) {
+            const currentFile = realFiles[id as string];
 
             sendFile(
               //TODO: encrypt
@@ -76,12 +91,13 @@ export default class DownloadManager {
                   const newProg = prev.filter(
                     (prog) => prog.id !== (id as string)
                   );
-                  newProg.push({
-                    id: id as string,
-                    name: currentFile.name,
-                    progress: percent,
-                    toMe: true,
-                  });
+                  if (percent !== 1)
+                    newProg.push({
+                      id: id as string,
+                      name: currentFile.name,
+                      progress: percent,
+                      toMe: true,
+                    });
                   return newProg;
                 })
             );
@@ -151,8 +167,10 @@ export default class DownloadManager {
   };
 
   public offerRequestableFiles = async (
-    toOffer: { [id: string]: File } | undefined = this.realFiles
+    toOffer: { [id: string]: File } | undefined
   ) => {
+    const realFiles = await this.getRealFiles();
+    if (!toOffer) toOffer = realFiles;
     if (!toOffer) return;
     const files: FileOffer[] = Object.entries(toOffer).map(([id, file]) => ({
       id,
@@ -170,6 +188,7 @@ export default class DownloadManager {
         });
       }
     });
+    console.log(offersToSend);
     await Promise.all(offersToSend);
   };
 
@@ -183,9 +202,11 @@ export default class DownloadManager {
       (el) => el.remove() // remove indicator
     );
 
-    const newFiles = { ...this.realFiles };
-    delete newFiles[id];
-    this.realFiles = newFiles;
+    this.setRealFiles((prev) => {
+      const newFiles = { ...prev };
+      delete newFiles[id];
+      return newFiles;
+    });
   };
 
   public addRealFiles = (initialList: File[]) => {
@@ -193,8 +214,13 @@ export default class DownloadManager {
     Array.from(initialList).map(
       (file) => (filesToAdd[shortid.generate()] = file)
     );
-    const newFiles = { ...this.realFiles, ...filesToAdd };
-    this.offerRequestableFiles(newFiles);
-    this.realFiles = newFiles;
+
+    console.log(filesToAdd);
+
+    this.setRealFiles((prev) => {
+      const newFiles = { ...prev, ...filesToAdd };
+      this.offerRequestableFiles(newFiles);
+      return newFiles;
+    });
   };
 }

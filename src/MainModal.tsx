@@ -3,6 +3,7 @@ import ChatProcessing from "mdi-preact/ChatProcessingIcon";
 import Download from "mdi-preact/DownloadIcon";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { FileUploader } from "react-drag-drop-files";
+import { selfId } from "trystero";
 import { Room } from "trystero/torrent";
 import "./assets/App.css";
 import CollapsibleContainer from "./helpers/Collapsible";
@@ -33,10 +34,11 @@ function RoomCard(props: { roomId: string; leaveRoom: () => void }) {
 
 function UserManager(props: {
   myName: string;
+  myId: string;
   setMyName: (name: string) => void;
   peers: User[];
 }) {
-  const { myName, setMyName, peers } = props;
+  const { myName, myId, setMyName, peers } = props;
   return (
     <div className="card">
       <h2>You</h2>
@@ -47,6 +49,7 @@ function UserManager(props: {
         autoComplete={"off"}
         onChange={(e) => setMyName(e.currentTarget.value)}
       />
+      <p>{myId}</p>
       <h2>Peers</h2>
       <ul>
         {peers.length ? (
@@ -90,6 +93,9 @@ function MainModal(props: {
   const [[sendUserKey, getUserKey]] = useState(() => room.makeAction("pubkey")); //seperated to save bandwidth
 
   const [messageQueue, setMessageQueue] = useState<Message[]>([]);
+  const [realFiles, setRealFiles, asyncGetRealFiles] = useExtendedState<{
+    [key: string]: File;
+  }>({});
   const [
     requestableDownloads,
     setRequestableDownloads,
@@ -187,6 +193,7 @@ function MainModal(props: {
 
     const dm = new DownloadManager(
       room,
+      [asyncGetRealFiles, setRealFiles],
       [asyncGetRequestableDownloads, setRequestableDownloads],
       setProgressQueue,
       asyncGetUsers,
@@ -204,9 +211,20 @@ function MainModal(props: {
     setPeers((peers) => [...peers, { peerId, name: "Anonymous" }]);
   });
 
-  room.onPeerLeave((peerId) =>
-    setPeers((peers) => peers.filter((p) => p.peerId !== peerId))
-  );
+  room.onPeerLeave((peerId) => {
+    setPeers((peers) => peers.filter((p) => p.peerId !== peerId));
+    if (peerId in realFiles) {
+      setRealFiles((files) => {
+        const ownedFiles = files[peerId];
+        setProgressQueue((q) => {
+          const newQ = q.filter((f) => !(f.id in ownedFiles));
+          return newQ;
+        });
+        delete files[peerId];
+        return files;
+      });
+    }
+  });
   return (
     <>
       <Tabs.Root defaultValue="tab1">
@@ -255,7 +273,12 @@ function MainModal(props: {
             </div>
           </div>
 
-          <UserManager myName={myName} setMyName={setMyName} peers={peers} />
+          <UserManager
+            myId={selfId}
+            myName={myName}
+            setMyName={setMyName}
+            peers={peers}
+          />
         </Tabs.Content>
         <Tabs.Content value="tab2">
           {downloadManagerInstance && (
@@ -274,66 +297,67 @@ function MainModal(props: {
                     <div className="uploadbox">Drag &amp; Drop files here</div>
                   </FileUploader>
                   <div className="filelistcontainer">
-                    {downloadManagerInstance.realFiles &&
-                      Object.entries(downloadManagerInstance.realFiles).map(
-                        ([id, file]) => (
-                          <div className="filelistbox" key={id}>
-                            {file.name} <p>{fancyBytes(file.size)} </p>
-                            <button
-                              type="button"
-                              className="bigbutton"
-                              style={{ padding: "0.3em" }}
-                              onClick={() =>
-                                downloadManagerInstance.removeRealFile(id)
-                              }
-                            >
-                              ✖
-                            </button>
-                            <hr />
-                          </div>
-                        )
-                      )}
+                    {realFiles &&
+                      Object.entries(realFiles).map(([id, file]) => (
+                        <div className="filelistbox" key={id}>
+                          {file.name} <p>{fancyBytes(file.size)} </p>
+                          <button
+                            type="button"
+                            className="bigbutton"
+                            style={{ padding: "0.3em" }}
+                            onClick={() =>
+                              downloadManagerInstance.removeRealFile(id)
+                            }
+                          >
+                            ✖
+                          </button>
+                          <hr />
+                        </div>
+                      ))}
                   </div>
                 </div>
 
                 <div className="card" style={{ width: "50%" }}>
                   <h3>Request File</h3>
                   <div className="filelistcontainer">
-                    {Object.entries(requestableDownloads).map(
-                      ([peerId, fileOffers]) => (
-                        <div className="filelistbox" key={peerId}>
-                          <CollapsibleContainer
-                            title={
-                              peers.find((u) => u.peerId === peerId)?.name ||
-                              "Anonymous"
-                            }
-                          >
-                            <div className="filelistcontainer">
-                              {fileOffers.map(({ id, name, size, ownerId }) => (
-                                <div className="filelistbox" key={id}>
-                                  <div className="horizontal">
-                                    <div style={{ paddingRight: "1em" }}>
-                                      <h5>{name}</h5>
-                                      <p>{fancyBytes(size)}</p>
+                    {requestableDownloads &&
+                      Object.entries(requestableDownloads).map(
+                        ([peerId, fileOffers]) => (
+                          <div className="filelistbox" key={peerId}>
+                            <CollapsibleContainer
+                              title={
+                                peers.find((u) => u.peerId === peerId)?.name ||
+                                "Anonymous"
+                              }
+                            >
+                              <div className="filelistcontainer">
+                                {fileOffers.map(
+                                  ({ id, name, size, ownerId }) => (
+                                    <div className="filelistbox" key={id}>
+                                      <div className="horizontal">
+                                        <div style={{ paddingRight: "1em" }}>
+                                          <h5>{name}</h5>
+                                          <p>{fancyBytes(size)}</p>
+                                        </div>
+                                        <button
+                                          onClick={() =>
+                                            downloadManagerInstance.requestFile(
+                                              ownerId,
+                                              id
+                                            )
+                                          }
+                                        >
+                                          Request
+                                        </button>
+                                      </div>
                                     </div>
-                                    <button
-                                      onClick={() =>
-                                        downloadManagerInstance.requestFile(
-                                          ownerId,
-                                          id
-                                        )
-                                      }
-                                    >
-                                      Request
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </CollapsibleContainer>
-                        </div>
-                      )
-                    )}
+                                  )
+                                )}
+                              </div>
+                            </CollapsibleContainer>
+                          </div>
+                        )
+                      )}
                   </div>
                 </div>
               </div>
@@ -341,30 +365,24 @@ function MainModal(props: {
               <div className="card" style={{ width: "100%" }}>
                 <h3>Active Transfers</h3>
                 <div className="filelistcontainer">
-                  {/* {progressTrayStatuses.map((status) => (//TODO: fixme change to new sys
-                      <div
-                        key={status.id}
-                        className={`filelistbox ${status.id}`}
+                  {progressQueue.map((status) => (
+                    <div key={status.id} className={`filelistbox ${status.id}`}>
+                      <h5
+                        style={{
+                          color: "var(--accent-major)",
+                          fontWeight: "600",
+                        }}
                       >
-                        <h5
-                          style={{
-                            color: "var(--accent-major)",
-                            fontWeight: "600",
-                          }}
-                        >
-                          {status.toMe
-                            ? ` ← ${status.fileName}`
-                            : `${status.fileName} →`}
-                        </h5>
-                        <progress
-                          id={`progbar-${status.id}-${status.toId}`}
-                          className="progressbar"
-                          value="0"
-                          min="0"
-                          max="100"
-                        />
-                      </div>
-                    ))} */}
+                        {status.toMe ? ` ← ${status.name}` : `${status.name} →`}
+                      </h5>
+                      <progress
+                        className="progressbar"
+                        value={status.progress * 100}
+                        min="0"
+                        max="100"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
