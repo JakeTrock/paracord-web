@@ -4,25 +4,29 @@ import streamSaver from "streamsaver";
 import { Room, selfId } from "trystero";
 import { decryptMessage, encryptMessage } from "../cryptoSuite";
 import { FileMetaData, FileOffer, FileProgress, User } from "../types";
+import DBManager from "./dbManager";
 
 export default class DownloadManager {
   private getRealFiles: () => Promise<{ [key: string]: File }>;
   private setRealFiles: StateUpdater<{ [key: string]: File }>;
   private sendFileRequest: (id: string, peerIds?: string | string[]) => void;
   private sendFileOffer: (files: string, peerIds?: string | string[]) => void;
-  private getUsers: () => Promise<User[]>; //TODO: remove when user manager class added
+  private getUsers: () => Promise<User[]>;
   private requestableDownloads;
   private setProgressQueue: StateUpdater<FileProgress[]>;
 
   constructor({
     room,
+    roomId,
+    dbManager,
     realFiles,
     downloadCache,
     setProgressQueue,
-    asyncGetUsers, //TODO: remove when user manager class added
     privateKey,
   }: {
     room: Room;
+    roomId: string;
+    dbManager: DBManager;
     realFiles: [
       () => Promise<{
         [key: string]: File;
@@ -40,7 +44,6 @@ export default class DownloadManager {
       }>
     ];
     setProgressQueue: StateUpdater<FileProgress[]>;
-    asyncGetUsers: () => Promise<User[]>; //TODO: remove when user manager class added
     privateKey: CryptoKey;
   }) {
     const [sendFile, getFile, onFileProgress] = room.makeAction("transfer");
@@ -58,7 +61,7 @@ export default class DownloadManager {
 
     this.requestableDownloads = requestableDownloads;
 
-    this.getUsers = asyncGetUsers;
+    this.getUsers = () => dbManager.getAllUsers(roomId);
     console.log("DownloadManager initialized");
 
     onFileProgress((percent, peerId, metadata) => {

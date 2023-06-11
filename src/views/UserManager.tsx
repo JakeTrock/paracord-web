@@ -1,6 +1,6 @@
 import { User } from "../helpers/types";
 
-export function UserManager(props: {
+export function UserView(props: {
   myName: string;
   myId: string;
   setMyName: (name: string) => void;
@@ -8,7 +8,7 @@ export function UserManager(props: {
 }) {
   const { myName, myId, setMyName, peers } = props;
   return (
-    <div className="sidebar">
+    <div className="sidebar filelistcontainer" style={{ overflow: "scroll" }}>
       <h2>You</h2>
       <input
         type="text"

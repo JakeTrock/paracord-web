@@ -22,7 +22,7 @@ export default function Messages(props: {
       {messageQueue
         .sort((a, b) => a.recievedAt - b.recievedAt)
         .map((message: Message, index) =>
-          message.sentBy === "system" ? (
+          message.sentBy === "system" ? ( //TODO: add system messages
             <div
               key={index}
               className="filelistbox"
@@ -39,7 +39,7 @@ export default function Messages(props: {
               ref={index + 1 === messageQueue.length ? lastMessage : null}
               className={`tag is-medium filelistbox`}
               style={{
-                backgroundColor: "#f5f5f5",
+                backgroundColor: "var(--accent-minor-light)",
                 color: "black",
                 textAlign: "right",
                 marginLeft: "auto",
@@ -62,7 +62,7 @@ export default function Messages(props: {
                 ref={index + 1 === messageQueue.length ? lastMessage : null}
                 className={`tag is-medium filelistbox`}
                 style={{
-                  backgroundColor: "#00d1b2",
+                  backgroundColor: "var(--accent-major-light)",
                   color: "white",
                   textAlign: "left",
                   width: "fit-content",

@@ -5,22 +5,22 @@ import { Message, User } from "../types";
 import DBManager from "./dbManager";
 
 export default class ChatManager {
-  private getUsers: () => Promise<User[]>;
   private sendChatAction: (data: string, peerIds: string[]) => void;
   private dbManager: DBManager;
   private addToMessageQueue: (message: Message) => void;
+  private getUsers: () => Promise<User[]>;
 
   constructor({
     room,
+    roomId,
     dbManager,
     addToMessageQueue,
-    getUsers,
     privateKey,
   }: {
     room: Room;
+    roomId: string;
     dbManager: DBManager;
     addToMessageQueue: (message: Message) => void;
-    getUsers: () => Promise<User[]>;
     privateKey: CryptoKey;
   }) {
     const [sendChatAction, getChatAction] = room.makeAction("chat");
@@ -55,7 +55,7 @@ export default class ChatManager {
 
     this.dbManager = dbManager;
 
-    this.getUsers = getUsers;
+    this.getUsers = () => dbManager.getAllUsers(roomId);
   }
 
   public sendChat = async (message: string, roomId: string) => {

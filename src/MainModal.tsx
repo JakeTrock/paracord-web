@@ -2,18 +2,18 @@ import * as Tabs from "@radix-ui/react-tabs";
 import ChatProcessing from "mdi-preact/ChatProcessingIcon";
 import Download from "mdi-preact/DownloadIcon";
 import { useEffect, useState } from "preact/hooks";
-import { Room, selfId } from "trystero/torrent";
+import { Room } from "trystero/torrent";
 import "./assets/App.css";
 import ChatManager from "./helpers/TrysteroManagers/chatManager";
 import DBManager from "./helpers/TrysteroManagers/dbManager";
 import DownloadManager from "./helpers/TrysteroManagers/downloadManager";
+import UserManager from "./helpers/TrysteroManagers/userManager";
 import { generateKeyPair } from "./helpers/cryptoSuite";
 import { useExtendedState } from "./helpers/helpers";
-import { FileOffer, FileProgress, Message, User } from "./helpers/types";
+import { FileOffer, FileProgress, Message } from "./helpers/types";
 import { ChatView } from "./views/ChatView";
 import { DownloadView } from "./views/DownloadView";
 import { RoomCard } from "./views/RoomCard";
-import { UserManager } from "./views/UserManager";
 
 const CACHE_LENGTH = 100;
 
@@ -25,9 +25,11 @@ function MainModal(props: {
   //TODO: when system refreshes on quit, it still gets mad that 'name' et al are recreated
   const { room, roomId, leaveRoom } = props;
   const [myName, setMyName] = useState<string>("Anonymous");
-  const [peers, setPeers, asyncGetUsers] = useExtendedState<User[]>([]);
   const [encryptionInfo, setEncryptionInfo] = useState<
     CryptoKeyPair | undefined
+  >(undefined);
+  const [userManagerInstance, setUserManagerInstance] = useState<
+    UserManager | undefined
   >(undefined);
   const [chatManagerInstance, setChatManagerInstance] = useState<
     ChatManager | undefined
@@ -35,9 +37,6 @@ function MainModal(props: {
   const [downloadManagerInstance, setDownloadManagerInstance] = useState<
     DownloadManager | undefined
   >(undefined);
-
-  const [[sendName, getName]] = useState(() => room.makeAction("name"));
-  const [[sendUserKey, getUserKey]] = useState(() => room.makeAction("pubkey")); //seperated to save bandwidth
 
   const [messageQueue, setMessageQueue] = useState<Message[]>([]);
   const [realFiles, setRealFiles, asyncGetRealFiles] = useExtendedState<{
@@ -62,62 +61,20 @@ function MainModal(props: {
     });
   };
 
-  getName((name, peerId) => {
-    setPeers((p) => {
-      const newPeers = p.map((p) => {
-        if (p.peerId === peerId) {
-          p.name = name as unknown as string;
-        }
-        return p;
-      });
-      return newPeers;
-    });
-  });
-
-  getUserKey(async (publicKey, peerId) => {
-    if (publicKey) {
-      const importedKey = await window.crypto.subtle.importKey(
-        "jwk",
-        publicKey as unknown as JsonWebKey,
-        { name: "RSA-OAEP", hash: { name: "SHA-256" } },
-        true,
-        ["encrypt"]
-      );
-      setPeers((p) => {
-        const newPeers = p.map((p) => {
-          if (p.peerId === peerId) {
-            p.pubKey = importedKey;
-          }
-          return p;
-        });
-        return newPeers;
-      });
-    }
-  });
-
-  const syncInfo = async () => {
-    sendName(myName);
-    if (encryptionInfo) {
-      const publicKeyJwk = await window.crypto.subtle.exportKey(
-        "jwk",
-        encryptionInfo.publicKey
-      );
-      sendUserKey(publicKeyJwk);
-    }
-  };
-
   useEffect(() => {
-    syncInfo();
+    if (userManagerInstance) {
+      userManagerInstance.syncInfo();
+    }
   }, [myName, encryptionInfo]);
 
   const initSystem = async () => {
     const keyPair = await generateKeyPair(); //TODO: this should never be globally exposed
     setEncryptionInfo(keyPair);
-    const dbm = new DBManager();
-    dbm
+    const dbManager = new DBManager();
+    dbManager
       .initDb()
       .then(() =>
-        dbm.getMessagesAfter(
+        dbManager.getMessagesAfter(
           //initialize message queue
           roomId,
           new Date(Date.now() - 86400000).getTime(),
@@ -126,21 +83,43 @@ function MainModal(props: {
       ) //TODO: remove when infinityscroll is implemented
       .then((messages) => setMessageQueue(messages));
 
+    const um = new UserManager({
+      room,
+      roomId,
+      dbManager,
+      peerLeaveHook: (peerId) => {
+        if (peerId in realFiles) {
+          setRealFiles((files) => {
+            const ownedFiles = files[peerId];
+            setProgressQueue((q) => {
+              const newQ = q.filter((f) => !(f.id in ownedFiles));
+              return newQ;
+            });
+            delete files[peerId];
+            return files;
+          });
+        }
+      },
+      privateKey: keyPair.privateKey,
+    });
+    setUserManagerInstance(um);
+
     const cm = new ChatManager({
       room,
-      dbManager: dbm,
+      roomId,
+      dbManager,
       addToMessageQueue,
-      getUsers: asyncGetUsers,
       privateKey: keyPair.privateKey,
     });
     setChatManagerInstance(cm);
 
     const dm = new DownloadManager({
       room,
+      roomId,
+      dbManager,
       realFiles: [asyncGetRealFiles, setRealFiles],
       downloadCache: [asyncGetRequestableDownloads, setRequestableDownloads],
       setProgressQueue,
-      asyncGetUsers,
       privateKey: keyPair.privateKey,
     });
     setDownloadManagerInstance(dm);
@@ -150,25 +129,6 @@ function MainModal(props: {
     initSystem();
   }, []);
 
-  room.onPeerJoin(async (peerId) => {
-    syncInfo();
-    setPeers((peers) => [...peers, { peerId, name: "Anonymous" }]);
-  });
-
-  room.onPeerLeave((peerId) => {
-    setPeers((peers) => peers.filter((p) => p.peerId !== peerId));
-    if (peerId in realFiles) {
-      setRealFiles((files) => {
-        const ownedFiles = files[peerId];
-        setProgressQueue((q) => {
-          const newQ = q.filter((f) => !(f.id in ownedFiles));
-          return newQ;
-        });
-        delete files[peerId];
-        return files;
-      });
-    }
-  });
   return (
     <>
       <RoomCard roomId={roomId} leaveRoom={leaveRoom} />
@@ -193,12 +153,12 @@ function MainModal(props: {
               />
             </Tabs.Content>
           </div>
-          <UserManager
+          {/* <UserView
             myId={selfId}
             myName={myName}
             setMyName={setMyName}
             peers={peers}
-          />
+          /> */}
         </div>
         <div className="bottombar">
           <Tabs.List aria-label="tabs example">
