@@ -2,22 +2,21 @@ import { FileUploader } from "react-drag-drop-files";
 import CollapsibleContainer from "../helpers/Collapsible";
 import DownloadManager from "../helpers/TrysteroManagers/downloadManager";
 import { fancyBytes } from "../helpers/helpers";
-import { FileOffer, FileProgress, User } from "../helpers/types";
+import { useProgressStore } from "../helpers/stateManagers/downloadManagers/progressManager";
+import { useRealFiles } from "../helpers/stateManagers/downloadManagers/realFileManager";
+import { useOfferStore } from "../helpers/stateManagers/downloadManagers/requestManager";
+import { useUserStore } from "../helpers/stateManagers/userStore";
 
 export function DownloadView(props: {
-  downloadManagerInstance: DownloadManager | undefined;
-  progressQueue: FileProgress[];
-  requestableDownloads: { [key: string]: FileOffer[] };
-  realFiles: { [key: string]: File };
-  peers: User[];
+  downloadManagerInstance: DownloadManager;
 }) {
-  const {
-    downloadManagerInstance,
-    progressQueue,
-    requestableDownloads,
-    realFiles,
-    peers,
-  } = props;
+  const { downloadManagerInstance } = props;
+  const realFiles = useRealFiles((state) => state.realFiles);
+  const requestableDownloads = useOfferStore(
+    (state) => state.requestableDownloads
+  );
+  const progressQueue = useProgressStore((state) => state.progressQueue);
+
   return (
     <>
       {downloadManagerInstance && (
@@ -61,8 +60,9 @@ export function DownloadView(props: {
                     <div className="filelistbox" key={peerId}>
                       <CollapsibleContainer
                         title={
-                          peers.find((u) => u.peerId === peerId)?.name ||
-                          "Anonymous"
+                          useUserStore((state) =>
+                            state.users.find((u) => u.peerId === peerId)
+                          )?.name || "Anonymous"
                         }
                       >
                         <div className="filelistcontainer">

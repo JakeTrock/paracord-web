@@ -1,4 +1,6 @@
 import { useState } from "preact/hooks";
+import shortid from "shortid";
+import { useMessageStore } from "./stateManagers/messageStore";
 
 export function useExtendedState<T>(initialState: T) {
   const [state, setState] = useState<T>(initialState);
@@ -19,8 +21,26 @@ export const fancyBytes = (bytes: number) => {
 };
 
 export const isRtcSupported = () => {
-  //@ts-ignore
-  const peerConn = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
-  const canDataChannel = !!(peerConn && peerConn.prototype && peerConn.prototype.createDataChannel);
+  const peerConn =
+    window.RTCPeerConnection ||
+    //@ts-ignore
+    window.mozRTCPeerConnection ||
+    //@ts-ignore
+    window.webkitRTCPeerConnection;
+  const canDataChannel = !!(
+    peerConn &&
+    peerConn.prototype &&
+    peerConn.prototype.createDataChannel
+  );
   return !!peerConn && canDataChannel;
-}
+};
+
+export const sendSystemMessage = (roomId: string, text: string) =>
+  useMessageStore.getState().addMessage({
+    msgId: shortid.generate(),
+    text,
+    sentAt: new Date().getTime(),
+    roomId: roomId,
+    sentBy: "system",
+    recievedAt: new Date().getTime(),
+  });

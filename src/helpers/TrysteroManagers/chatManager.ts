@@ -1,44 +1,31 @@
 import shortid from "shortid";
 import { Room, selfId } from "trystero";
 import { decryptMessage, encryptMessage } from "../cryptoSuite";
+import { useMessageStore } from "../stateManagers/messageStore";
+import { usePersonaStore } from "../stateManagers/personaStore";
+import { useUserStore } from "../stateManagers/userStore";
 import { Message, User } from "../types";
-import DBManager from "./dbManager";
 
 export default class ChatManager {
   private sendChatAction: (data: string, peerIds: string[]) => void;
-  private dbManager: DBManager;
-  private addToMessageQueue: (message: Message) => void;
-  private getUsers: () => Promise<User[]>;
+  private roomId: string;
 
-  constructor({
-    room,
-    roomId,
-    dbManager,
-    addToMessageQueue,
-    privateKey,
-  }: {
-    room: Room;
-    roomId: string;
-    dbManager: DBManager;
-    addToMessageQueue: (message: Message) => void;
-    privateKey: CryptoKey;
-  }) {
-    const [sendChatAction, getChatAction] = room.makeAction("chat");
+  constructor({ room, roomId }: { room: Room; roomId: string }) {
+    const [sendChatAction, getChatAction] = room.makeAction<string>("chat");
     this.sendChatAction = sendChatAction;
-    this.addToMessageQueue = addToMessageQueue;
+    this.roomId = roomId;
 
     getChatAction(async (data, peerId) => {
-      //TODO: this is never called
-      console.log("Received chat message");
-      const dataDecoded = await decryptMessage(
-        privateKey,
-        data as unknown as string
-      )
+      const currentPersona = usePersonaStore
+        .getState()
+        .personas.find((persona) => persona.roomId === roomId);
+      const privateKey = currentPersona && currentPersona.keyPair.privateKey;
+      if (!privateKey) return console.error("Could not find private key");
+      const dataDecoded = await decryptMessage(privateKey, data)
         .then((data) => {
-          return JSON.parse(data) as Message;
+          return JSON.parse(data);
         })
         .catch((e) => console.error(e));
-      console.log(dataDecoded);
       if (dataDecoded === undefined)
         return console.error("Could not decrypt message");
       const newMessage: Message = {
@@ -49,31 +36,25 @@ export default class ChatManager {
         recievedAt: Date.now(),
         roomId: dataDecoded.roomId,
       };
-      addToMessageQueue(newMessage);
-      dbManager.addMessage(newMessage);
+      useMessageStore.getState().addMessage(newMessage);
     });
-
-    this.dbManager = dbManager;
-
-    this.getUsers = () => dbManager.getAllUsers(roomId);
   }
 
-  public sendChat = async (message: string, roomId: string) => {
-    if (message.trim() === "" || roomId.trim() === "") return;
+  public sendChat = async (message: string) => {
+    if (message.trim() === "" || this.roomId.trim() === "") return;
     const newMessage: Message = {
       sentBy: selfId,
       msgId: shortid.generate(),
       text: message,
       sentAt: Date.now(),
       recievedAt: Date.now(),
-      roomId: roomId,
+      roomId: this.roomId,
     };
     const msgString = JSON.stringify(newMessage);
-    console.log(msgString);
-    const users: User[] = await this.getUsers();
-    console.log(users); //TODO:why is this empty?
+    const users: User[] = useUserStore.getState().users.filter((user) => {
+      return user.roomId === this.roomId && user.active;
+    });
     const messagesToSend = users.map(async ({ peerId, pubKey }) => {
-      console.log(peerId);
       if (pubKey) {
         await encryptMessage(pubKey, msgString).then((encodedMessage) => {
           this.sendChatAction(encodedMessage, [peerId]);
@@ -81,7 +62,7 @@ export default class ChatManager {
       }
     });
     await Promise.all(messagesToSend);
-    this.addToMessageQueue(newMessage);
-    this.dbManager.addMessage(newMessage);
+
+    useMessageStore.getState().addMessage(newMessage);
   };
 }

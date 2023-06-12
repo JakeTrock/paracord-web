@@ -1,87 +1,95 @@
-import { Room } from "trystero";
-import DBManager from "./dbManager";
+import { Room, selfId } from "trystero";
+import { sendSystemMessage } from "../helpers";
+import { useProgressStore } from "../stateManagers/downloadManagers/progressManager";
+import { useOfferStore } from "../stateManagers/downloadManagers/requestManager";
+import { usePersonaStore } from "../stateManagers/personaStore";
+import { useUserStore } from "../stateManagers/userStore";
 
 export default class UserManager {
   private roomId;
   private sendName;
   private sendUserKey;
-  private getPersona;
-  private updatePersona;
 
-  constructor({
-    room,
-    roomId,
-    dbManager,
-    peerLeaveHook,
-    privateKey,
-  }: {
-    room: Room;
-    roomId: string;
-    dbManager: DBManager;
-    peerLeaveHook: (peerId: string) => void;
-    privateKey: CryptoKey;
-  }) {
+  constructor({ room, roomId }: { room: Room; roomId: string }) {
     this.roomId = roomId;
-    this.getPersona = dbManager.getPersona;
-    this.updatePersona = dbManager.updatePersona;
 
-    const [sendName, getName] = room.makeAction("name");
-    const [sendUserKey, getUserKey] = room.makeAction("pubkey"); //seperated to save bandwidth
+    const [sendName, getName] = room.makeAction<string>("name");
+    const [sendUserKey, getUserKey] = room.makeAction<string>("pubkey"); //seperated to save bandwidth
 
     this.sendName = sendName;
     this.sendUserKey = sendUserKey;
 
     room.onPeerJoin(async (peerId) => {
       this.syncInfo();
-      dbManager.addUser({ peerId, roomId, active: true, name: "Anonymous" });
+      useUserStore
+        .getState()
+        .addUser({ peerId, roomId, active: true, name: "Anonymous" });
+      sendSystemMessage(roomId, `${peerId} joined the room`);
     });
 
     room.onPeerLeave((peerId) => {
-      dbManager.UpdateUser(peerId, { active: false });
+      useUserStore.getState().updateUser(peerId, { active: false });
 
-      peerLeaveHook(peerId);
+      const peerOffers = useOfferStore.getState().requestableDownloads[peerId];
+      peerOffers?.forEach((offer) =>
+        useProgressStore.getState().deleteProgress(offer.id)
+      );
+
+      useOfferStore.getState().removeRequestablesForId(peerId);
+      sendSystemMessage(roomId, `${peerId} left the room`);
     });
 
-    getName((name, peerId) =>
-      dbManager.UpdateUser(peerId, { name: name as unknown as string })
-    );
+    getName((name, peerId) => {
+      useUserStore.getState().updateUser(peerId, { name: name });
+    });
 
     getUserKey(async (publicKey, peerId) => {
       if (publicKey) {
         const importedKey = await window.crypto.subtle.importKey(
           "jwk",
-          publicKey as unknown as JsonWebKey,
+          publicKey as JsonWebKey,
           { name: "RSA-OAEP", hash: { name: "SHA-256" } },
           true,
           ["encrypt"]
         );
-        dbManager.UpdateUser(peerId, { pubKey: importedKey });
+        useUserStore.getState().updateUser(peerId, { pubKey: importedKey });
       }
     });
   }
 
   syncInfo = async () => {
-    this.getPersona(this.roomId).then((persona) => {
-      if (persona) {
-        this.sendName(persona.name);
-        if (persona.keyPair) {
-          window.crypto.subtle
-            .exportKey("jwk", persona.keyPair.publicKey)
-            .then((publicKeyJwk) => {
-              this.sendUserKey(publicKeyJwk);
-            });
-        }
+    const activePersona = usePersonaStore
+      .getState()
+      .personas.find((p) => p.roomId === this.roomId);
+    if (activePersona) {
+      this.sendName(activePersona.name);
+      if (activePersona.keyPair) {
+        await window.crypto.subtle
+          .exportKey("jwk", activePersona.keyPair.publicKey)
+          .then((publicKeyJwk) => this.sendUserKey(publicKeyJwk as string));
       }
-    });
+    }
   };
 
   setMyName = (name: string) => {
-    this.updatePersona(this.roomId, { name });
+    usePersonaStore.getState().updatePersona(this.roomId, { name });
     this.syncInfo();
   };
 
   setEncryptionInfo = (info: CryptoKeyPair) => {
-    this.updatePersona(this.roomId, { keyPair: info });
+    usePersonaStore.getState().updatePersona(this.roomId, { keyPair: info });
+    this.syncInfo();
+  };
+
+  createPersona = (kp: CryptoKeyPair) => {
+    usePersonaStore.getState().addPersona({
+      peerIds: [selfId],
+      roomId: this.roomId,
+      name: "Anonymous",
+      active: true,
+      lastUsed: new Date().getTime(),
+      keyPair: kp,
+    });
     this.syncInfo();
   };
 }

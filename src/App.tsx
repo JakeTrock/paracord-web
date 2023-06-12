@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import shortid from "shortid";
 import { BaseRoomConfig } from "trystero";
-import { Room, TorrentRoomConfig, joinRoom } from "trystero/torrent"; //TODO: Could use strategy conversion to also do firebase, but that's evil
+import { Room, TorrentRoomConfig, joinRoom } from "trystero/torrent";
 import MainModal from "./MainModal";
 import "./assets/App.css";
 import { isRtcSupported } from "./helpers/helpers";
 import pcdLogo from "/logo.svg";
+
+//TODO: 4.0: add accounts with "boosting", paid fb vs free webtorrent. We should likely have our own tracker so we don't get blamed for outages
 
 const installedTrackers = [
   "wss://tracker.openwebtorrent.com",
   "wss://tracker.btorrent.xyz",
   "wss://tracker.files.fm:7073/announce",
   "wss://qot.abiir.top:443/announce",
-]; //TODO: same as default, perhaps you could add your own?
+];
 
 export const tradeName = "paracord_chat";
 

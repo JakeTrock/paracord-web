@@ -1,20 +1,14 @@
 import { useRef } from "preact/hooks";
 import ChatManager from "../helpers/TrysteroManagers/chatManager";
-import { Message, User } from "../helpers/types";
 import Messages from "./messages";
 
-export function ChatView(props: {
-  messageQueue: Message[];
-  peers: User[];
-  chatManagerInstance: ChatManager | undefined;
-  roomId: string;
-}) {
-  const { messageQueue, peers, chatManagerInstance, roomId } = props;
+export function ChatView(props: { chatManagerInstance: ChatManager }) {
+  const { chatManagerInstance } = props;
   const messageBox = useRef<HTMLInputElement>(null);
 
   return (
     <>
-      <Messages users={peers} messageQueue={messageQueue} />
+      <Messages />
       <div className="horizontal">
         <input
           ref={messageBox}
@@ -29,7 +23,7 @@ export function ChatView(props: {
               messageBox.current !== null &&
               chatManagerInstance
             ) {
-              chatManagerInstance.sendChat(messageBox.current.value, roomId);
+              chatManagerInstance.sendChat(messageBox.current.value);
               messageBox.current.value = "";
             }
           }}
@@ -37,7 +31,7 @@ export function ChatView(props: {
         <button
           onClick={() => {
             if (messageBox.current !== null && chatManagerInstance) {
-              chatManagerInstance.sendChat(messageBox.current.value, roomId);
+              chatManagerInstance.sendChat(messageBox.current.value);
               messageBox.current.value = "";
             }
           }}
