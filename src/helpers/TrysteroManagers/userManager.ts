@@ -2,8 +2,9 @@ import { Room, selfId } from "trystero";
 import { sendSystemMessage } from "../helpers";
 import { useProgressStore } from "../stateManagers/downloadManagers/progressManager";
 import { useOfferStore } from "../stateManagers/downloadManagers/requestManager";
-import { usePersonaStore } from "../stateManagers/personaStore";
-import { useUserStore } from "../stateManagers/userStore";
+import { useClientSideUserTraits } from "../stateManagers/userManagers/clientSideUserTraits";
+import { usePersonaStore } from "../stateManagers/userManagers/personaStore";
+import { useUserStore } from "../stateManagers/userManagers/userStore";
 
 export default class UserManager {
   private roomId;
@@ -19,31 +20,33 @@ export default class UserManager {
     this.sendName = sendName;
     this.sendUserKey = sendUserKey;
 
-    room.onPeerJoin(async (peerId) => {
+    room.onPeerJoin(async (id) => {
       this.syncInfo();
       useUserStore
         .getState()
-        .addUser({ peerId, roomId, active: true, name: "Anonymous" });
-      sendSystemMessage(roomId, `${peerId} joined the room`);
+        .addUser({ id, roomId, active: true, name: "Anonymous" });
+      useClientSideUserTraits.getState().addUser(id);
+      sendSystemMessage(roomId, `${id} joined the room`);
     });
 
-    room.onPeerLeave((peerId) => {
-      useUserStore.getState().updateUser(peerId, { active: false });
+    room.onPeerLeave((id) => {
+      useUserStore.getState().updateUser(id, { active: false });
 
-      const peerOffers = useOfferStore.getState().requestableDownloads[peerId];
+      const peerOffers = useOfferStore.getState().requestableDownloads[id];
       peerOffers?.forEach((offer) =>
         useProgressStore.getState().deleteProgress(offer.id)
       );
 
-      useOfferStore.getState().removeRequestablesForId(peerId);
-      sendSystemMessage(roomId, `${peerId} left the room`);
+      useOfferStore.getState().removeRequestablesForId(id);
+      useClientSideUserTraits.getState().removeUser(id);
+      sendSystemMessage(roomId, `${id} left the room`);
     });
 
-    getName((name, peerId) => {
-      useUserStore.getState().updateUser(peerId, { name: name });
+    getName((name, id) => {
+      useUserStore.getState().updateUser(id, { name: name });
     });
 
-    getUserKey(async (publicKey, peerId) => {
+    getUserKey(async (publicKey, id) => {
       if (publicKey) {
         const importedKey = await window.crypto.subtle.importKey(
           "jwk",
@@ -52,7 +55,7 @@ export default class UserManager {
           true,
           ["encrypt"]
         );
-        useUserStore.getState().updateUser(peerId, { pubKey: importedKey });
+        useUserStore.getState().updateUser(id, { pubKey: importedKey });
       }
     });
   }
@@ -83,7 +86,7 @@ export default class UserManager {
 
   createPersona = (kp: CryptoKeyPair) => {
     usePersonaStore.getState().addPersona({
-      peerIds: [selfId],
+      ids: [selfId],
       roomId: this.roomId,
       name: "Anonymous",
       active: true,

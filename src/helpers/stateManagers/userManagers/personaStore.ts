@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Persona } from "../types";
+import { Persona } from "../../types";
 
 interface PersonaStore {
   personas: Persona[];

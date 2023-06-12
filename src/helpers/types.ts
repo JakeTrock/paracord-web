@@ -6,7 +6,7 @@ export type FileMetaData = {
 };
 
 export interface User {
-  peerId: string;
+  id: string;
   roomId: string;
   active: boolean;
   pubKey?: CryptoKey;
@@ -14,7 +14,7 @@ export interface User {
 }
 
 export interface Message {
-  msgId: string;
+  id: string;
   text: string;
   sentAt: number;
   roomId: string;
@@ -38,7 +38,7 @@ export interface FileProgress {
 
 export interface Persona {
   roomId: string;
-  peerIds: string[];
+  ids: string[];
   active: boolean;
   keyPair: CryptoKeyPair;
   name: string | "Anonymous";

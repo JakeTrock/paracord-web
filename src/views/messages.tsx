@@ -6,7 +6,7 @@ import { useMessageStore } from "../helpers/stateManagers/messageStore";
 dayjs.extend(relativeTime);
 
 export default function Messages() {
-  const messageQueue = useMessageStore((state) => state.messages);
+  const messageQueue = useMessageStore((store) => store.messages);
 
   //TODO: infinite scroll, get scroll posn and request more messages if 100 from top
   return (

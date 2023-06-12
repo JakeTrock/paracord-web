@@ -5,7 +5,7 @@ import { fancyBytes } from "../helpers/helpers";
 import { useProgressStore } from "../helpers/stateManagers/downloadManagers/progressManager";
 import { useRealFiles } from "../helpers/stateManagers/downloadManagers/realFileManager";
 import { useOfferStore } from "../helpers/stateManagers/downloadManagers/requestManager";
-import { useUserStore } from "../helpers/stateManagers/userStore";
+import { useUserStore } from "../helpers/stateManagers/userManagers/userStore";
 
 export function DownloadView(props: {
   downloadManagerInstance: DownloadManager;
@@ -55,42 +55,40 @@ export function DownloadView(props: {
           <CollapsibleContainer className="filelistbox" title="Send Request">
             <div className="filelistcontainer">
               {requestableDownloads &&
-                Object.entries(requestableDownloads).map(
-                  ([peerId, fileOffers]) => (
-                    <div className="filelistbox" key={peerId}>
-                      <CollapsibleContainer
-                        title={
-                          useUserStore((state) =>
-                            state.users.find((u) => u.peerId === peerId)
-                          )?.name || "Anonymous"
-                        }
-                      >
-                        <div className="filelistcontainer">
-                          {fileOffers.map(({ id, name, size, ownerId }) => (
-                            <div className="filelistbox" key={id}>
-                              <div className="horizontal">
-                                <div style={{ paddingRight: "1em" }}>
-                                  <h5>{name}</h5>
-                                  <p>{fancyBytes(size)}</p>
-                                </div>
-                                <button
-                                  onClick={() =>
-                                    downloadManagerInstance.requestFile(
-                                      ownerId,
-                                      id
-                                    )
-                                  }
-                                >
-                                  Request
-                                </button>
+                Object.entries(requestableDownloads).map(([id, fileOffers]) => (
+                  <div className="filelistbox" key={id}>
+                    <CollapsibleContainer
+                      title={
+                        useUserStore((state) =>
+                          state.users.find((u) => u.id === id)
+                        )?.name || "Anonymous"
+                      }
+                    >
+                      <div className="filelistcontainer">
+                        {fileOffers.map(({ id, name, size, ownerId }) => (
+                          <div className="filelistbox" key={id}>
+                            <div className="horizontal">
+                              <div style={{ paddingRight: "1em" }}>
+                                <h5>{name}</h5>
+                                <p>{fancyBytes(size)}</p>
                               </div>
+                              <button
+                                onClick={() =>
+                                  downloadManagerInstance.requestFile(
+                                    ownerId,
+                                    id
+                                  )
+                                }
+                              >
+                                Request
+                              </button>
                             </div>
-                          ))}
-                        </div>
-                      </CollapsibleContainer>
-                    </div>
-                  )
-                )}
+                          </div>
+                        ))}
+                      </div>
+                    </CollapsibleContainer>
+                  </div>
+                ))}
             </div>
           </CollapsibleContainer>
           <CollapsibleContainer

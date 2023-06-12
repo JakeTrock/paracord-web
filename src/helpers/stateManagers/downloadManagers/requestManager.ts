@@ -3,25 +3,25 @@ import { FileOffer } from "../../types";
 
 interface OfferStore {
   requestableDownloads: { [key: string]: FileOffer[] };
-  updateOrAddRequestable: (peerId: string, offers: FileOffer[]) => void;
-  removeRequestablesForId: (peerId: string) => void;
+  updateOrAddRequestable: (id: string, offers: FileOffer[]) => void;
+  removeRequestablesForId: (id: string) => void;
 }
 
 export const useOfferStore = create<OfferStore>((set) => ({
   requestableDownloads: {},
 
-  updateOrAddRequestable: (peerId: string, offers: FileOffer[]) =>
+  updateOrAddRequestable: (id: string, offers: FileOffer[]) =>
     set((state) => ({
       requestableDownloads: {
         ...state.requestableDownloads,
-        [peerId]: offers,
+        [id]: offers,
       },
     })),
-  removeRequestablesForId: (peerId: string) =>
+  removeRequestablesForId: (id: string) =>
     set((state) => ({
       requestableDownloads: (() => {
         const requestables = state.requestableDownloads;
-        if (peerId in requestables) delete requestables[peerId];
+        if (id in requestables) delete requestables[id];
         return requestables;
       })(),
     })),

@@ -1,7 +1,9 @@
 import { selfId } from "trystero";
+import MuteUserButton from "../helpers/MuteUserButton";
 import UserManager from "../helpers/TrysteroManagers/userManager";
-import { usePersonaStore } from "../helpers/stateManagers/personaStore";
-import { useUserStore } from "../helpers/stateManagers/userStore";
+import { useClientSideUserTraits } from "../helpers/stateManagers/userManagers/clientSideUserTraits";
+import { usePersonaStore } from "../helpers/stateManagers/userManagers/personaStore";
+import { useUserStore } from "../helpers/stateManagers/userManagers/userStore";
 
 export function UserView(props: {
   roomId: string;
@@ -14,6 +16,7 @@ export function UserView(props: {
   const activePeers = useUserStore((state) =>
     state.users.filter((p) => p.roomId === roomId && p.active)
   );
+  const mutedPeers = useClientSideUserTraits();
   return (
     <div className="sidebar filelistcontainer" style={{ overflow: "scroll" }}>
       <h2>You</h2>
@@ -28,14 +31,20 @@ export function UserView(props: {
           userManagerInstance.setMyName(e.currentTarget.value)
         }
       />
-      <p>{selfId}</p>
+      <p style={{ color: "grey" }}>{selfId}</p>
       <h2>Peers</h2>
       <ul>
         {activePeers.length ? (
-          activePeers.map(({ name, peerId }) => (
-            <li key={peerId}>
-              <h5>{name}</h5>
-              <p>{peerId}</p>
+          activePeers.map(({ name, id }) => (
+            <li key={id}>
+              <h5 className="horizontal">
+                <MuteUserButton
+                  toggleMuted={() => mutedPeers.toggleMute(id)}
+                  isMuted={mutedPeers.mutedUsers[id] || false}
+                />
+                {name}
+              </h5>
+              <p style={{ color: "grey" }}>{id}</p>
             </li>
           ))
         ) : (

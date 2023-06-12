@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useEffect, useRef } from "preact/hooks";
 import { selfId } from "trystero";
-import { useUserStore } from "./stateManagers/userStore";
+import { useUserStore } from "./stateManagers/userManagers/userStore";
 import { Message } from "./types";
 
 dayjs.extend(relativeTime);
@@ -55,7 +55,7 @@ export default function RenderMessage(props: {
           <span style={{ fontWeight: "bold" }}>
             {
               useUserStore((state) =>
-                state.users.find((user) => user.peerId === message.sentBy)
+                state.users.find((user) => user.id === message.sentBy)
               )?.name
             }
           </span>

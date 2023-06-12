@@ -37,7 +37,7 @@ export const isRtcSupported = () => {
 
 export const sendSystemMessage = (roomId: string, text: string) =>
   useMessageStore.getState().addMessage({
-    msgId: shortid.generate(),
+    id: shortid.generate(),
     text,
     sentAt: new Date().getTime(),
     roomId: roomId,

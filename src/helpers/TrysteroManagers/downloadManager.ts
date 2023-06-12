@@ -5,13 +5,13 @@ import { sendSystemMessage } from "../helpers";
 import { useProgressStore } from "../stateManagers/downloadManagers/progressManager";
 import { useRealFiles } from "../stateManagers/downloadManagers/realFileManager";
 import { useOfferStore } from "../stateManagers/downloadManagers/requestManager";
-import { usePersonaStore } from "../stateManagers/personaStore";
-import { useUserStore } from "../stateManagers/userStore";
+import { usePersonaStore } from "../stateManagers/userManagers/personaStore";
+import { useUserStore } from "../stateManagers/userManagers/userStore";
 import { FileMetaData, FileOffer } from "../types";
 
 export default class DownloadManager {
-  private sendFileRequest: (id: string, peerIds?: string | string[]) => void;
-  private sendFileOffer: (files: string, peerIds?: string | string[]) => void;
+  private sendFileRequest: (id: string, ids?: string | string[]) => void;
+  private sendFileOffer: (files: string, ids?: string | string[]) => void;
 
   constructor({ room, roomId }: { room: Room; roomId: string }) {
     const [sendFile, getFile, onFileProgress] =
@@ -22,14 +22,14 @@ export default class DownloadManager {
     this.sendFileRequest = sendFileRequest;
     this.sendFileOffer = sendFileOffer;
 
-    onFileProgress((progress, peerId, metadata) => {
+    onFileProgress((progress, id, metadata) => {
       const processedMeta = metadata as FileMetaData;
       useProgressStore
         .getState()
         .updateProgress(processedMeta.id, { progress });
     });
 
-    getFileRequest((data, peerId) => {
+    getFileRequest((data, id) => {
       const currentPersona = usePersonaStore
         .getState()
         .personas.find((persona) => persona.roomId === roomId);
@@ -50,13 +50,13 @@ export default class DownloadManager {
             sendFile(
               //TODO: encrypt
               currentFile,
-              peerId,
+              id,
               {
                 id: id,
                 name: currentFile.name,
                 size: currentFile.size,
               },
-              (percent, peerId) =>
+              (percent, id) =>
                 useProgressStore
                   .getState()
                   .updateProgress(id, { progress: percent })
@@ -66,7 +66,7 @@ export default class DownloadManager {
         .catch((e) => console.error(e));
     });
 
-    getFile((file, peerId, metadata) => {
+    getFile((file, id, metadata) => {
       const processedMeta = metadata as FileMetaData;
       useProgressStore.getState().deleteProgress(processedMeta.id);
 
@@ -78,7 +78,7 @@ export default class DownloadManager {
       if (procFile) procFile.pipeTo(fileStream).catch(console.error);
     });
 
-    getFileOffer(async (data, peerId) => {
+    getFileOffer(async (data, id) => {
       const currentPersona = usePersonaStore
         .getState()
         .personas.find((persona) => persona.roomId === roomId);
@@ -86,12 +86,10 @@ export default class DownloadManager {
       if (!privateKey) return console.error("Could not find private key");
       await decryptMessage(privateKey, data)
         .then((data) =>
-          useOfferStore
-            .getState()
-            .updateOrAddRequestable(peerId, JSON.parse(data))
+          useOfferStore.getState().updateOrAddRequestable(id, JSON.parse(data))
         )
         .catch((e) => console.error(e));
-      sendSystemMessage(roomId, `${peerId} offered you files`);
+      sendSystemMessage(roomId, `${id} offered you files`);
     });
   }
 
@@ -110,7 +108,7 @@ export default class DownloadManager {
 
       const pubKey = useUserStore
         .getState()
-        .users.find((u) => u.peerId === fromUser)?.pubKey;
+        .users.find((u) => u.id === fromUser)?.pubKey;
 
       if (pubKey) {
         await encryptMessage(pubKey, id).then((encodedMessage) =>
@@ -135,10 +133,10 @@ export default class DownloadManager {
 
     const offersToSend = useUserStore
       .getState()
-      .users.map(async ({ peerId, pubKey }) => {
+      .users.map(async ({ id, pubKey }) => {
         if (pubKey) {
           await encryptMessage(pubKey, msgString).then((encodedMessage) => {
-            this.sendFileOffer(encodedMessage, [peerId]);
+            this.sendFileOffer(encodedMessage, [id]);
           });
         }
       });

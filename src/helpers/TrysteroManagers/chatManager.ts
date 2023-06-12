@@ -2,20 +2,24 @@ import shortid from "shortid";
 import { Room, selfId } from "trystero";
 import { decryptMessage, encryptMessage } from "../cryptoSuite";
 import { useMessageStore } from "../stateManagers/messageStore";
-import { usePersonaStore } from "../stateManagers/personaStore";
-import { useUserStore } from "../stateManagers/userStore";
+import { useClientSideUserTraits } from "../stateManagers/userManagers/clientSideUserTraits";
+import { usePersonaStore } from "../stateManagers/userManagers/personaStore";
+import { useUserStore } from "../stateManagers/userManagers/userStore";
 import { Message, User } from "../types";
 
 export default class ChatManager {
-  private sendChatAction: (data: string, peerIds: string[]) => void;
+  private sendChatAction: (data: string, ids?: string | string[]) => void;
+  private sendTyping: (data: boolean, ids?: string | string[]) => void;
   private roomId: string;
 
   constructor({ room, roomId }: { room: Room; roomId: string }) {
     const [sendChatAction, getChatAction] = room.makeAction<string>("chat");
+    const [sendTyping, getTyping] = room.makeAction<boolean>("isTyping");
     this.sendChatAction = sendChatAction;
+    this.sendTyping = sendTyping;
     this.roomId = roomId;
 
-    getChatAction(async (data, peerId) => {
+    getChatAction(async (data, id) => {
       const currentPersona = usePersonaStore
         .getState()
         .personas.find((persona) => persona.roomId === roomId);
@@ -28,23 +32,31 @@ export default class ChatManager {
         .catch((e) => console.error(e));
       if (dataDecoded === undefined)
         return console.error("Could not decrypt message");
-      const newMessage: Message = {
-        msgId: dataDecoded.msgId,
-        text: dataDecoded.text,
-        sentAt: dataDecoded.sentAt,
-        sentBy: peerId,
-        recievedAt: Date.now(),
-        roomId: dataDecoded.roomId,
-      };
-      useMessageStore.getState().addMessage(newMessage);
+
+      if (useClientSideUserTraits.getState().mutedUsers[id] !== true) {
+        const newMessage: Message = {
+          id: dataDecoded.id,
+          text: dataDecoded.text,
+          sentAt: dataDecoded.sentAt,
+          sentBy: id,
+          recievedAt: Date.now(),
+          roomId: dataDecoded.roomId,
+        };
+        useMessageStore.getState().addMessage(newMessage);
+      }
+    });
+
+    getTyping((data, id) => {
+      if (data === true) useClientSideUserTraits.getState().addTypingUser(id);
+      else useClientSideUserTraits.getState().removeTypingUser(id);
     });
   }
 
-  public sendChat = async (message: string) => {
+  sendChat = async (message: string) => {
     if (message.trim() === "" || this.roomId.trim() === "") return;
     const newMessage: Message = {
       sentBy: selfId,
-      msgId: shortid.generate(),
+      id: shortid.generate(),
       text: message,
       sentAt: Date.now(),
       recievedAt: Date.now(),
@@ -54,15 +66,19 @@ export default class ChatManager {
     const users: User[] = useUserStore.getState().users.filter((user) => {
       return user.roomId === this.roomId && user.active;
     });
-    const messagesToSend = users.map(async ({ peerId, pubKey }) => {
+    const messagesToSend = users.map(async ({ id, pubKey }) => {
       if (pubKey) {
         await encryptMessage(pubKey, msgString).then((encodedMessage) => {
-          this.sendChatAction(encodedMessage, [peerId]);
+          this.sendChatAction(encodedMessage, [id]);
         });
       }
     });
     await Promise.all(messagesToSend);
 
     useMessageStore.getState().addMessage(newMessage);
+  };
+
+  sendTypingIndicator = (isTyping: boolean) => {
+    this.sendTyping(isTyping);
   };
 }
