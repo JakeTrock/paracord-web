@@ -5,6 +5,7 @@ import { sendSystemMessage } from "../helpers";
 import { useProgressStore } from "../stateManagers/downloadManagers/progressManager";
 import { useRealFiles } from "../stateManagers/downloadManagers/realFileManager";
 import { useOfferStore } from "../stateManagers/downloadManagers/requestManager";
+import { useClientSideUserTraits } from "../stateManagers/userManagers/clientSideUserTraits";
 import { usePersonaStore } from "../stateManagers/userManagers/personaStore";
 import { useUserStore } from "../stateManagers/userManagers/userStore";
 import { FileMetaData, FileOffer } from "../types";
@@ -79,17 +80,21 @@ export default class DownloadManager {
     });
 
     getFileOffer(async (data, id) => {
-      const currentPersona = usePersonaStore
-        .getState()
-        .personas.find((persona) => persona.roomId === roomId);
-      const privateKey = currentPersona && currentPersona.keyPair.privateKey;
-      if (!privateKey) return console.error("Could not find private key");
-      await decryptMessage(privateKey, data)
-        .then((data) =>
-          useOfferStore.getState().updateOrAddRequestable(id, JSON.parse(data))
-        )
-        .catch((e) => console.error(e));
-      sendSystemMessage(roomId, `${id} offered you files`);
+      if (useClientSideUserTraits.getState().mutedUsers[id] !== true) {
+        const currentPersona = usePersonaStore
+          .getState()
+          .personas.find((persona) => persona.roomId === roomId);
+        const privateKey = currentPersona && currentPersona.keyPair.privateKey;
+        if (!privateKey) return console.error("Could not find private key");
+        await decryptMessage(privateKey, data)
+          .then((data) =>
+            useOfferStore
+              .getState()
+              .updateOrAddRequestable(id, JSON.parse(data))
+          )
+          .catch((e) => console.error(e));
+        sendSystemMessage(roomId, `${id} offered you files`);
+      }
     });
   }
 

@@ -1,6 +1,5 @@
 - react-virtualized for infinite scrolling
   - message auto-delete
-- add "reply" button to messages: use >>122133 to indicate reply
 - New font
   - new accent colors
 - list of prior rooms in init page

@@ -1,7 +1,7 @@
 .filelistcontainer {
   padding: 1rem 1.2rem;
   border-radius: var(--border-radius);
-  background: rgba(var(--card-rgb), 0);
+  background: rgba(var(--card-rgb), .4);
   border: 1px solid rgba(var(--card-border-rgb), .8);
   width: 100%;
   height: 32em;
