@@ -64,7 +64,10 @@ export function DownloadView(props: {
                         )?.name || "Anonymous"
                       }
                     >
-                      <div className="filelistcontainer">
+                      <div
+                        className="filelistcontainer"
+                        style={{ height: "auto" }}
+                      >
                         {fileOffers.map(({ id, name, size, ownerId }) => (
                           <div className="filelistbox" key={id}>
                             <div className="horizontal">
@@ -96,6 +99,7 @@ export function DownloadView(props: {
             title="Active Transfers"
           >
             <div className="filelistcontainer">
+              {/* TODO: add a "stop" button */}
               {progressQueue.map((status) => (
                 <div key={status.id} className={`filelistbox ${status.id}`}>
                   <h5

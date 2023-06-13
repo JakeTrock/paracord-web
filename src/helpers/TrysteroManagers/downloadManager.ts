@@ -30,7 +30,7 @@ export default class DownloadManager {
         .updateProgress(processedMeta.id, { progress });
     });
 
-    getFileRequest((data, id) => {
+    getFileRequest((data, userId) => {
       const currentPersona = usePersonaStore
         .getState()
         .personas.find((persona) => persona.roomId === roomId);
@@ -51,16 +51,14 @@ export default class DownloadManager {
             sendFile(
               //TODO: encrypt
               currentFile,
-              id,
+              userId,
               {
-                id: id,
+                id,
                 name: currentFile.name,
                 size: currentFile.size,
               },
-              (percent, id) =>
-                useProgressStore
-                  .getState()
-                  .updateProgress(id, { progress: percent })
+              (progress, fromUser) =>
+                useProgressStore.getState().updateProgress(id, { progress })
             );
           }
         })
@@ -72,6 +70,7 @@ export default class DownloadManager {
       useProgressStore.getState().deleteProgress(processedMeta.id);
 
       const fileStream = streamSaver.createWriteStream(processedMeta.name, {
+        //TODO: filesize is limited to 4g, how can this be surpassed?
         //TODO: may need to polyfill at some point
         size: processedMeta.size, // (optional filesize)
       });
