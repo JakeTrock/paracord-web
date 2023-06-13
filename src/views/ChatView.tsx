@@ -31,6 +31,7 @@ export function ChatView(props: { chatManagerInstance: ChatManager }) {
       <div className="horizontal">
         <input
           ref={messageBox}
+          id="userTextBox"
           className="textbox"
           name="userInput"
           type="text"

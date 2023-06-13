@@ -12,6 +12,7 @@
     "@radix-ui/react-tabs": "^1.0.4",
     "byte-base64": "^1.1.0",
     "dayjs": "^1.11.8",
+    "dompurify": "^3.0.3",
     "idb": "^7.1.1",
     "mdi-preact": "^9.2.0",
     "preact": "^10.13.1",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.5.0",
+    "@types/dompurify": "^3.0.2",
     "@types/shortid": "^0.0.29",
     "@types/streamsaver": "^2.0.1",
     "airbnb": "^0.0.2",

@@ -45,6 +45,11 @@
   background: rgba(var(--card-rgb), 0);
 }
 
+.filelistbox a {
+  color: var(--accent-major);
+  text-decoration: underline;
+}
+
 .textbox {
   border: 1px solid rgba(var(--card-border-rgb), .5);
   padding: 1rem 1.2rem;
