@@ -116,7 +116,7 @@ function App() {
   const [roomId, setRoomId] = useState<string | null>(null);
 
   const bootStrapRoom = (id: string, roomPassword?: string) => {
-    if (!room) {
+    if (id && !room) {
       const newRoom = joinRoom(
         { ...defaultRoomConfig, password: roomPassword },
         id

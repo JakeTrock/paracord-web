@@ -1,3 +1,5 @@
+- switch out trystero for plain WT?
+
 - react-virtualized for infinite scrolling
   - message auto-delete
 - New font
@@ -11,3 +13,8 @@
 https://www.radix-ui.com/docs/
 
 https://github.com/pmndrs/zustand/tree/main#transient-updates-for-often-occurring-state-changes
+
+filegen:
+ dd if=/dev/urandom of=temp_10G_file bs=1 count=0 seek=10G
+
+ - When million is ready, perhaps switch to it https://million.dev/docs/quickstart
