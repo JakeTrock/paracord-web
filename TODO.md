@@ -1,4 +1,5 @@
 - switch out trystero for plain WT?
+- add altlogo
 
 - react-virtualized for infinite scrolling
   - message auto-delete
@@ -18,3 +19,13 @@ filegen:
  dd if=/dev/urandom of=temp_10G_file bs=1 count=0 seek=10G
 
  - When million is ready, perhaps switch to it https://million.dev/docs/quickstart
+
+- decisions decisions, how do I handle large files
+  - chunking 
+    - pre abstraction
+    - post abstraction
+  - rtc call
+  - to investigate
+    - O good, but may need more tests https://github.com/julienc91/ezshare
+
+https://joji.me/en-us/blog/processing-huge-files-using-filereader-readasarraybuffer-in-web-browser/
