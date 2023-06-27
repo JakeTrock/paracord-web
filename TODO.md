@@ -18,6 +18,7 @@ https://github.com/pmndrs/zustand/tree/main#transient-updates-for-often-occurrin
 filegen:
  dd if=/dev/urandom of=temp_10G_file bs=1 count=0 seek=10G
 
+ - switch to native-file-system-adapter at some point when the api becomes more stable
  - When million is ready, perhaps switch to it https://million.dev/docs/quickstart
 
 - decisions decisions, how do I handle large files
