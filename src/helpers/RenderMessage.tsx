@@ -4,7 +4,7 @@ import DOMPurify from "dompurify";
 import Reply from "mdi-preact/ReplyIcon";
 import { useEffect, useRef } from "preact/hooks";
 import { selfId } from "trystero";
-import { useUserStore } from "./stateManagers/userManagers/userStore";
+import { useUserStore } from "../stateManagers/userManagers/userStore";
 import { Message } from "./types";
 
 dayjs.extend(relativeTime);

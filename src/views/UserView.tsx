@@ -1,9 +1,9 @@
 import { selfId } from "trystero";
+import UserManager from "../TrysteroManagers/userManager";
 import MuteUserButton from "../helpers/MuteUserButton";
-import UserManager from "../helpers/TrysteroManagers/userManager";
-import { useClientSideUserTraits } from "../helpers/stateManagers/userManagers/clientSideUserTraits";
-import { usePersonaStore } from "../helpers/stateManagers/userManagers/personaStore";
-import { useUserStore } from "../helpers/stateManagers/userManagers/userStore";
+import { useClientSideUserTraits } from "../stateManagers/userManagers/clientSideUserTraits";
+import { usePersonaStore } from "../stateManagers/userManagers/personaStore";
+import { useUserStore } from "../stateManagers/userManagers/userStore";
 
 export function UserView(props: {
   roomId: string;

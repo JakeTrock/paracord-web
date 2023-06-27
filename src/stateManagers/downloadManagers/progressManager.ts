@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { FileProgress } from "../../types";
+import { FileProgress } from "../../helpers/types";
 
 interface ProgressStore {
   progressQueue: FileProgress[];

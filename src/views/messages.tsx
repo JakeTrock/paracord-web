@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import RenderMessage from "../helpers/RenderMessage";
-import { useMessageStore } from "../helpers/stateManagers/messageStore";
+import { useMessageStore } from "../stateManagers/messageStore";
 
 dayjs.extend(relativeTime);
 

@@ -1,11 +1,11 @@
 import shortid from "shortid";
 import { Room, selfId } from "trystero";
-import { decryptMessage, encryptMessage } from "../cryptoSuite";
+import { decryptMessage, encryptMessage } from "../helpers/cryptoSuite";
+import { Message, User } from "../helpers/types";
 import { useMessageStore } from "../stateManagers/messageStore";
 import { useClientSideUserTraits } from "../stateManagers/userManagers/clientSideUserTraits";
 import { usePersonaStore } from "../stateManagers/userManagers/personaStore";
 import { useUserStore } from "../stateManagers/userManagers/userStore";
-import { Message, User } from "../types";
 
 export default class ChatManager {
   private sendChatAction: (data: string, ids?: string | string[]) => void;

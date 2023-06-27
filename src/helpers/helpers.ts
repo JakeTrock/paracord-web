@@ -1,6 +1,6 @@
 import { useState } from "preact/hooks";
 import shortid from "shortid";
-import { useMessageStore } from "./stateManagers/messageStore";
+import { useMessageStore } from "../stateManagers/messageStore";
 
 export function useExtendedState<T>(initialState: T) {
   const [state, setState] = useState<T>(initialState);
@@ -44,3 +44,17 @@ export const sendSystemMessage = (roomId: string, text: string) =>
     sentBy: "system",
     recievedAt: new Date().getTime(),
   });
+
+export const generateHexColorFromString = (str: string) => {
+  // Calculate a hash value for the string
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  // Convert the hash value to a 6-digit hexadecimal color
+  let color = (hash & 0x00ffffff).toString(16);
+  color = "00000".substring(0, 6 - color.length) + color;
+
+  return "#" + color;
+};

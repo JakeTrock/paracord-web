@@ -1,11 +1,11 @@
 import { FileUploader } from "react-drag-drop-files";
+import DownloadManager from "../TrysteroManagers/downloadManager";
 import CollapsibleContainer from "../helpers/Collapsible";
-import DownloadManager from "../helpers/TrysteroManagers/downloadManager";
 import { fancyBytes } from "../helpers/helpers";
-import { useProgressStore } from "../helpers/stateManagers/downloadManagers/progressManager";
-import { useRealFiles } from "../helpers/stateManagers/downloadManagers/realFileManager";
-import { useOfferStore } from "../helpers/stateManagers/downloadManagers/requestManager";
-import { useUserStore } from "../helpers/stateManagers/userManagers/userStore";
+import { useProgressStore } from "../stateManagers/downloadManagers/progressManager";
+import { useRealFiles } from "../stateManagers/downloadManagers/realFileManager";
+import { useOfferStore } from "../stateManagers/downloadManagers/requestManager";
+import { useUserStore } from "../stateManagers/userManagers/userStore";
 
 export function DownloadView(props: {
   downloadManagerInstance: DownloadManager;

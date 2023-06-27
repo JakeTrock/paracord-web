@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { User } from "../../types";
+import { User } from "../../helpers/types";
 
 interface UserStore {
   users: User[];

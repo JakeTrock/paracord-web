@@ -1,7 +1,7 @@
 import { useRef } from "preact/hooks";
-import ChatManager from "../helpers/TrysteroManagers/chatManager";
-import { useClientSideUserTraits } from "../helpers/stateManagers/userManagers/clientSideUserTraits";
-import { useUserStore } from "../helpers/stateManagers/userManagers/userStore";
+import ChatManager from "../TrysteroManagers/chatManager";
+import { useClientSideUserTraits } from "../stateManagers/userManagers/clientSideUserTraits";
+import { useUserStore } from "../stateManagers/userManagers/userStore";
 import Messages from "./messages";
 
 export function ChatView(props: { chatManagerInstance: ChatManager }) {

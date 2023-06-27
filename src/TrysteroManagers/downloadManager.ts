@@ -1,14 +1,14 @@
 import streamSaver from "streamsaver";
 import { Room, selfId } from "trystero";
-import { decryptMessage, encryptMessage } from "../cryptoSuite";
-import { sendSystemMessage } from "../helpers";
+import { decryptMessage, encryptMessage } from "../helpers/cryptoSuite";
+import { sendSystemMessage } from "../helpers/helpers";
+import { FileMetaData, FileOffer } from "../helpers/types";
 import { useProgressStore } from "../stateManagers/downloadManagers/progressManager";
 import { useRealFiles } from "../stateManagers/downloadManagers/realFileManager";
 import { useOfferStore } from "../stateManagers/downloadManagers/requestManager";
 import { useClientSideUserTraits } from "../stateManagers/userManagers/clientSideUserTraits";
 import { usePersonaStore } from "../stateManagers/userManagers/personaStore";
 import { useUserStore } from "../stateManagers/userManagers/userStore";
-import { FileMetaData, FileOffer } from "../types";
 
 export default class DownloadManager {
   private sendFileRequest: (id: string, ids?: string | string[]) => void;

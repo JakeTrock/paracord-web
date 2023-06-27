@@ -1,5 +1,5 @@
 import { Room, selfId } from "trystero";
-import { sendSystemMessage } from "../helpers";
+import { sendSystemMessage } from "../helpers/helpers";
 import { useProgressStore } from "../stateManagers/downloadManagers/progressManager";
 import { useOfferStore } from "../stateManagers/downloadManagers/requestManager";
 import { useClientSideUserTraits } from "../stateManagers/userManagers/clientSideUserTraits";
