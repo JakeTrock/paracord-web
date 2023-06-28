@@ -8,6 +8,17 @@
   overflow: scroll;
 }
 
+.namepill {
+  background: rgba(var(--card-rgb), .9);
+  border-radius: var(--border-radius);
+  padding: 0.5rem 0.8rem;
+  color: var(--accent-major);
+  font-weight: 700;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+
 .progressbar {
   background: rgba(var(--card-rgb), .9);
   border-radius: var(--border-radius);

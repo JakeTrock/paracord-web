@@ -1,6 +1,7 @@
 import { selfId } from "trystero";
 import UserManager from "../TrysteroManagers/userManager";
 import MuteUserButton from "../helpers/MuteUserButton";
+import { generateHexColorFromString } from "../helpers/helpers";
 import { useClientSideUserTraits } from "../stateManagers/userManagers/clientSideUserTraits";
 import { usePersonaStore } from "../stateManagers/userManagers/personaStore";
 import { useUserStore } from "../stateManagers/userManagers/userStore";
@@ -19,7 +20,12 @@ export function UserView(props: {
   const mutedPeers = useClientSideUserTraits();
   return (
     <div className="sidebar filelistcontainer" style={{ overflow: "scroll" }}>
-      <h2>You</h2>
+      <h2
+        className="namepill"
+        style={{ backgroundColor: generateHexColorFromString(selfId) }}
+      >
+        You
+      </h2>
       <input
         type="text"
         value={activePersona?.name || "Anonymous"}
@@ -37,7 +43,10 @@ export function UserView(props: {
         {activePeers.length ? (
           activePeers.map(({ name, id }) => (
             <li key={id}>
-              <h5 className="horizontal">
+              <h5
+                className="horizontal namepill"
+                style={{ backgroundColor: generateHexColorFromString(id) }}
+              >
                 <MuteUserButton
                   toggleMuted={() => mutedPeers.toggleMute(id)}
                   isMuted={mutedPeers.mutedUsers[id] || false}

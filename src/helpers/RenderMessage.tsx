@@ -3,8 +3,8 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import DOMPurify from "dompurify";
 import Reply from "mdi-preact/ReplyIcon";
 import { useEffect, useRef } from "preact/hooks";
-import { selfId } from "trystero";
 import { useUserStore } from "../stateManagers/userManagers/userStore";
+import { generateHexColorFromString } from "./helpers";
 import { Message } from "./types";
 
 dayjs.extend(relativeTime);
@@ -59,32 +59,15 @@ export default function RenderMessage(props: {
             {dayjs().to(dayjs(message.recievedAt))}
           </p>
         </div>
-      ) : message.sentBy === selfId ? (
-        <div
-          key={index}
-          ref={isLast ? lastMessage : null}
-          className={`tag is-medium filelistbox`}
-          style={{
-            backgroundColor: "var(--accent-minor-light)",
-            color: "black",
-            textAlign: "right",
-            marginLeft: "auto",
-            marginRight: 0,
-            width: "fit-content",
-          }}
-        >
-          <div
-            dangerouslySetInnerHTML={{
-              __html: DOMPurify.sanitize(formatMessage(message.text)),
-            }}
-          />
-          <p style={{ color: "grey" }}>
-            {dayjs().to(dayjs(message.recievedAt))}
-          </p>
-        </div>
       ) : (
         <>
-          <span style={{ fontWeight: "bold" }}>
+          <span
+            style={{
+              fontWeight: "bold",
+              backgroundColor: generateHexColorFromString(message.sentBy),
+            }}
+            className="namepill"
+          >
             {
               useUserStore((state) =>
                 state.users.find((user) => user.id === message.sentBy)
@@ -98,8 +81,8 @@ export default function RenderMessage(props: {
               ref={isLast ? lastMessage : null}
               className={`tag is-medium filelistbox`}
               style={{
-                backgroundColor: "var(--accent-major-light)",
-                color: "white",
+                backgroundColor: "var(--background-rgb)",
+                color: "var(--foreground-rgb)",
                 textAlign: "left",
                 width: "fit-content",
               }}

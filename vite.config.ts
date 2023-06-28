@@ -8,9 +8,6 @@ export default defineConfig({
     preact(),
     VitePWA({
       registerType: "autoUpdate",
-      // workbox: {
-      //   globPatterns: ["**/*.{js,css,html,png,svg}"],
-      // },
       includeAssets: ["logo.svg", "iconMasks/*.png"],
       manifest: {
         theme_color: "#4bffac",
@@ -66,9 +63,9 @@ export default defineConfig({
           },
         ],
       },
-      devOptions: {
-        enabled: true,
-      },
+      // devOptions: {
+      //   enabled: true,
+      // },
     }),
   ],
 });
