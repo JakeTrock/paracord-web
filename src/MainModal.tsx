@@ -2,12 +2,11 @@ import * as Tabs from "@radix-ui/react-tabs";
 import ChatProcessing from "mdi-preact/ChatProcessingIcon";
 import Download from "mdi-preact/DownloadIcon";
 import { useEffect, useState } from "preact/hooks";
-import { Room } from "trystero/torrent";
+import { Room } from "trystero";
 import ChatManager from "./TrysteroManagers/chatManager";
 import DownloadManager from "./TrysteroManagers/downloadManager";
 import UserManager from "./TrysteroManagers/userManager";
 import "./assets/App.css";
-import { generateKeyPair } from "./helpers/cryptoSuite";
 import { ChatView } from "./views/ChatView";
 import { DownloadView } from "./views/DownloadView";
 import { RoomCard } from "./views/RoomCard";
@@ -42,9 +41,7 @@ function MainModal(props: {
   );
 
   useEffect(() => {
-    generateKeyPair().then((keyPair) =>
-      userManagerInstance.createPersona(keyPair)
-    );
+    userManagerInstance.createPersona();
   }, []);
 
   return (

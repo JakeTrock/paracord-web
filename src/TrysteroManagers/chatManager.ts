@@ -20,10 +20,9 @@ export default class ChatManager {
     this.roomId = roomId;
 
     getChatAction(async (data, id) => {
-      const currentPersona = usePersonaStore
-        .getState()
-        .personas.find((persona) => persona.roomId === roomId);
-      const privateKey = currentPersona && currentPersona.keyPair.privateKey;
+      const currentPersona = usePersonaStore.getState().persona;
+      const privateKey =
+        currentPersona.keyPair && currentPersona.keyPair.privateKey;
       if (!privateKey) return console.error("Could not find private key");
       const dataDecoded = await decryptMessage(privateKey, data)
         .then((data) => {

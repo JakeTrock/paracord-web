@@ -11,21 +11,14 @@ export function UserView(props: {
   userManagerInstance: UserManager;
 }) {
   const { roomId, userManagerInstance } = props;
-  const activePersona = usePersonaStore((state) =>
-    state.personas.find((p) => p.roomId === roomId)
-  );
+  const activePersona = usePersonaStore((state) => state.persona);
   const activePeers = useUserStore((state) =>
     state.users.filter((p) => p.roomId === roomId && p.active)
   );
   const mutedPeers = useClientSideUserTraits();
   return (
     <div className="sidebar filelistcontainer" style={{ overflow: "scroll" }}>
-      <h2
-        className="namepill"
-        style={{ backgroundColor: generateHexColorFromString(selfId) }}
-      >
-        You
-      </h2>
+      <h2 style={{ color: generateHexColorFromString(selfId) }}>You</h2>
       <input
         type="text"
         value={activePersona?.name || "Anonymous"}
@@ -39,13 +32,17 @@ export function UserView(props: {
       />
       <p style={{ color: "grey" }}>{selfId}</p>
       <h2>Peers</h2>
-      <ul>
+      <ul
+        style={{
+          listStyle: "none",
+        }}
+      >
         {activePeers.length ? (
           activePeers.map(({ name, id }) => (
             <li key={id}>
               <h5
-                className="horizontal namepill"
-                style={{ backgroundColor: generateHexColorFromString(id) }}
+                className="horizontal"
+                style={{ color: generateHexColorFromString(id) }}
               >
                 <MuteUserButton
                   toggleMuted={() => mutedPeers.toggleMute(id)}

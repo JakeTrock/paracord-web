@@ -31,10 +31,9 @@ export default class DownloadManager {
     });
 
     getFileRequest((data, userId) => {
-      const currentPersona = usePersonaStore
-        .getState()
-        .personas.find((persona) => persona.roomId === roomId);
-      const privateKey = currentPersona && currentPersona.keyPair.privateKey;
+      const currentPersona = usePersonaStore.getState().persona;
+      const privateKey =
+        currentPersona.keyPair && currentPersona.keyPair.privateKey;
       if (!privateKey) return console.error("Could not find private key");
 
       decryptMessage(privateKey, data)
@@ -80,10 +79,9 @@ export default class DownloadManager {
 
     getFileOffer(async (data, id) => {
       if (useClientSideUserTraits.getState().mutedUsers[id] !== true) {
-        const currentPersona = usePersonaStore
-          .getState()
-          .personas.find((persona) => persona.roomId === roomId);
-        const privateKey = currentPersona && currentPersona.keyPair.privateKey;
+        const currentPersona = usePersonaStore.getState().persona;
+        const privateKey =
+          currentPersona.keyPair && currentPersona.keyPair.privateKey;
         if (!privateKey) return console.error("Could not find private key");
         await decryptMessage(privateKey, data)
           .then((data) =>

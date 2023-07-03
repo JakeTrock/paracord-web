@@ -37,10 +37,6 @@ export interface FileProgress {
 }
 
 export interface Persona {
-  roomId: string;
-  ids: string[];
-  active: boolean;
-  keyPair: CryptoKeyPair;
+  keyPair: CryptoKeyPair | undefined;
   name: string | "Anonymous";
-  lastUsed: number;
 }

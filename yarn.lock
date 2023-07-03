@@ -7298,10 +7298,8 @@ truncate-utf8-bytes@^1.0.0:
   dependencies:
     utf8-byte-length "^1.0.1"
 
-trystero@^0.12.0:
-  version "0.12.0"
-  resolved "https://registry.yarnpkg.com/trystero/-/trystero-0.12.0.tgz#e9150de2e6c11ec1847da5fbc4c99764968b5e35"
-  integrity sha512-iIN/4Ixg+s3CUiCLKQkU/XbdwNSUSzO4PwXzT74iiSlSDqclpm1Ra9fjPBsYH4vIPXTNgbZ+eCJIMKspbflgvA==
+trystero@./trystero:
+  version "0.12.1"
   dependencies:
     firebase "^9.6.5"
     ipfs-core "0.9.0"

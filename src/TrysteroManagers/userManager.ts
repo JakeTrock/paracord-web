@@ -1,4 +1,4 @@
-import { Room, selfId } from "trystero";
+import { Room } from "trystero";
 import { sendSystemMessage } from "../helpers/helpers";
 import { useProgressStore } from "../stateManagers/downloadManagers/progressManager";
 import { useOfferStore } from "../stateManagers/downloadManagers/requestManager";
@@ -61,9 +61,7 @@ export default class UserManager {
   }
 
   syncInfo = async () => {
-    const activePersona = usePersonaStore
-      .getState()
-      .personas.find((p) => p.roomId === this.roomId);
+    const activePersona = usePersonaStore.getState().persona;
     if (activePersona) {
       this.sendName(activePersona.name);
       if (activePersona.keyPair) {
@@ -75,24 +73,17 @@ export default class UserManager {
   };
 
   setMyName = (name: string) => {
-    usePersonaStore.getState().updatePersona(this.roomId, { name });
+    usePersonaStore.getState().updatePersona({ name });
     this.syncInfo();
   };
 
   setEncryptionInfo = (info: CryptoKeyPair) => {
-    usePersonaStore.getState().updatePersona(this.roomId, { keyPair: info });
+    usePersonaStore.getState().updatePersona({ keyPair: info });
     this.syncInfo();
   };
 
-  createPersona = (kp: CryptoKeyPair) => {
-    usePersonaStore.getState().addPersona({
-      ids: [selfId],
-      roomId: this.roomId,
-      name: "Anonymous",
-      active: true,
-      lastUsed: new Date().getTime(),
-      keyPair: kp,
-    });
+  createPersona = async () => {
+    await usePersonaStore.getState().resetPersona();
     this.syncInfo();
   };
 }

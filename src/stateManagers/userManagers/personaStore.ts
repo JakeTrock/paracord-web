@@ -1,25 +1,27 @@
 import { create } from "zustand";
+import { generateKeyPair } from "../../helpers/cryptoSuite";
 import { Persona } from "../../helpers/types";
 
 interface PersonaStore {
-  personas: Persona[];
-  addPersona: (persona: Persona) => void;
-  updatePersona: (roomId: string, updates: Partial<Persona>) => void;
-  deletePersona: (roomId: string) => void;
+  persona: Persona;
+  updatePersona: (updates: Partial<Persona>) => void;
+  resetPersona: () => void;
 }
 
 export const usePersonaStore = create<PersonaStore>((set) => ({
-  personas: [],
-  addPersona: (persona: Persona) =>
-    set((state) => ({ personas: [...state.personas, persona] })),
-  updatePersona: (roomId: string, updates: Partial<Persona>) =>
-    set((state) => ({
-      personas: state.personas.map((persona) =>
-        persona.roomId === roomId ? { ...persona, ...updates } : persona
-      ),
-    })),
-  deletePersona: (roomId: string) =>
-    set((state) => ({
-      personas: state.personas.filter((persona) => persona.roomId !== roomId),
-    })),
+  persona: {
+    name: "Anonymous",
+    keyPair: undefined,
+  },
+  updatePersona: (updates: Partial<Persona>) =>
+    set((state) => ({ persona: { ...state.persona, ...updates } })),
+  resetPersona: async () =>
+    await generateKeyPair().then((kp) =>
+      set((state) => ({
+        persona: {
+          name: "Anonymous",
+          keyPair: kp,
+        },
+      }))
+    ),
 }));

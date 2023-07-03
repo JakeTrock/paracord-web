@@ -3,7 +3,6 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import DOMPurify from "dompurify";
 import Reply from "mdi-preact/ReplyIcon";
 import { useEffect, useRef } from "preact/hooks";
-import { useUserStore } from "../stateManagers/userManagers/userStore";
 import { generateHexColorFromString } from "./helpers";
 import { Message } from "./types";
 
@@ -27,11 +26,13 @@ const formatMessage = (message: string) => {
 export default function RenderMessage(props: {
   //TODO: de-bubble messages
   message: Message;
+  sentByName: string;
   index: number;
   isLast: boolean;
 }) {
-  const { message, index, isLast } = props;
+  const { message, index, isLast, sentByName } = props;
   const lastMessage = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (isLast && lastMessage.current)
       lastMessage.current.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -52,7 +53,11 @@ export default function RenderMessage(props: {
         <div
           key={index}
           className="filelistbox"
-          style={{ textAlign: "center" }}
+          style={{
+            textAlign: "center",
+            border: "1px solid rgba(var(--card-border-rgb), 0.20)",
+            borderRadius: "var(--border-radius)",
+          }}
         >
           {message.text}
           <p style={{ color: "grey" }}>
@@ -61,19 +66,6 @@ export default function RenderMessage(props: {
         </div>
       ) : (
         <>
-          <span
-            style={{
-              fontWeight: "bold",
-              backgroundColor: generateHexColorFromString(message.sentBy),
-            }}
-            className="namepill"
-          >
-            {
-              useUserStore((state) =>
-                state.users.find((user) => user.id === message.sentBy)
-              )?.name
-            }
-          </span>
           <div className="horizontal">
             <div
               key={message.id}
@@ -87,24 +79,44 @@ export default function RenderMessage(props: {
                 width: "fit-content",
               }}
             >
+              <span className="horizontal">
+                <h4
+                  style={{
+                    fontWeight: "bold",
+                    color: generateHexColorFromString(message.sentBy),
+                  }}
+                >
+                  {sentByName}
+                </h4>
+                <p
+                  style={{
+                    paddingLeft: "1em",
+                    fontSize: ".8em",
+                    color: "grey",
+                  }}
+                >
+                  {dayjs().to(dayjs(message.recievedAt))}
+                </p>
+                <div
+                  style={{
+                    paddingLeft: "1em",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => {
+                    const textBox = document.getElementById(
+                      "userTextBox"
+                    ) as HTMLFormElement;
+                    if (textBox) textBox.value += `>>${message.id}`;
+                  }}
+                >
+                  <Reply />
+                </div>
+              </span>
               <div
                 dangerouslySetInnerHTML={{
                   __html: DOMPurify.sanitize(formatMessage(message.text)),
                 }}
               />
-              <p style={{ color: "grey" }}>
-                {dayjs().to(dayjs(message.recievedAt))}
-              </p>
-            </div>
-            <div
-              onClick={() => {
-                const textBox = document.getElementById(
-                  "userTextBox"
-                ) as HTMLFormElement;
-                if (textBox) textBox.value += `>>${message.id}`;
-              }}
-            >
-              <Reply />
             </div>
           </div>
         </>
