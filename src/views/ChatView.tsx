@@ -13,6 +13,9 @@ export function ChatView(props: { chatManagerInstance: ChatManager }) {
       return { id: p.id, name: p.name };
     })
   );
+  const uiInteractive = useUserStore(
+    (state) => state.users.filter((p) => p.active).length > 0
+  );
 
   return (
     <>
@@ -37,6 +40,7 @@ export function ChatView(props: { chatManagerInstance: ChatManager }) {
           type="text"
           autoComplete="off"
           placeholder="Type your message"
+          disabled={!uiInteractive}
           onKeyDown={(e) => {
             if (
               e.key === "Enter" &&
@@ -58,6 +62,7 @@ export function ChatView(props: { chatManagerInstance: ChatManager }) {
               messageBox.current.value = "";
             }
           }}
+          disabled={!uiInteractive}
           type="button"
         >
           send ➔

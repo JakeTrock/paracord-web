@@ -4,6 +4,6 @@
     "react/react-in-jsx-scope": "off",
     "import/extensions": "off",
     "import/no-extraneous-dependencies": "off",
-    "react/jsx-filename-extension": [1, { "extensions": [".tsx", ".ts"] }]
+    "react/jsx-filename-extension": [1, { "extensions": [".tsx"] }]
   }
 }

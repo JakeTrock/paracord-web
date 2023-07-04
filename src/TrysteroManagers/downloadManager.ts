@@ -125,24 +125,35 @@ export default class DownloadManager {
   public offerRequestableFiles = async () => {
     const realFiles = useRealFiles.getState().realFiles;
     if (!realFiles) return;
-    const files: FileOffer[] = Object.entries(realFiles).map(([id, file]) => ({
-      id,
-      ownerId: selfId,
-      name: file.name,
-      size: file.size,
-    }));
+    const files: FileOffer[] = Object.entries(realFiles).map(
+      ([fileId, file]) => ({
+        id: fileId,
+        ownerId: selfId,
+        name: file.name,
+        size: file.size,
+      })
+    );
     const msgString = JSON.stringify(files);
 
     const offersToSend = useUserStore
       .getState()
-      .users.map(async ({ id, pubKey }) => {
+      .users.map(async ({ id: usrId, pubKey }) => {
         if (pubKey) {
-          await encryptMessage(pubKey, msgString).then((encodedMessage) => {
-            this.sendFileOffer(encodedMessage, [id]);
-          });
+          console.log(pubKey, msgString, usrId);
+          await encryptMessage(pubKey, msgString)
+            .then(
+              (encodedMessage) => {
+                console.log(encodedMessage);
+                this.sendFileOffer(encodedMessage, usrId);
+              } //TODO: error on multiple files.
+              // Must implement chunked encryption trystero-side
+              //https://www.npmjs.com/package/kyber-crystals
+            )
+            .catch((e) => console.error(e.Message));
         }
       });
-    await Promise.all(offersToSend);
+    console.log(offersToSend);
+    await Promise.all(offersToSend).catch((e) => console.error(e));
   };
 
   public removeRealFile = (id: string) => {

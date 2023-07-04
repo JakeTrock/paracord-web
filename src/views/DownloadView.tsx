@@ -16,6 +16,9 @@ export function DownloadView(props: {
     (state) => state.requestableDownloads
   );
   const progressQueue = useProgressStore((state) => state.progressQueue);
+  const uiInteractive = useUserStore(
+    (state) => state.users.filter((p) => p.active).length > 0
+  );
 
   return (
     <>
@@ -31,6 +34,8 @@ export function DownloadView(props: {
               required
               handleChange={downloadManagerInstance.addRealFiles}
               name="file"
+              accept="*"
+              disabled={!uiInteractive}
             >
               <div className="uploadbox">Drag &amp; Drop files here</div>
             </FileUploader>
@@ -55,43 +60,45 @@ export function DownloadView(props: {
           <CollapsibleContainer className="filelistbox" title="Send Request">
             <div className="filelistcontainer">
               {requestableDownloads &&
-                Object.entries(requestableDownloads).map(([id, fileOffers]) => (
-                  <div className="filelistbox" key={id}>
-                    <CollapsibleContainer
-                      title={
-                        useUserStore((state) =>
-                          state.users.find((u) => u.id === id)
-                        )?.name || "Anonymous"
-                      }
+                Object.entries(requestableDownloads).map(([id, fileOffers]) => {
+                  const userName =
+                    useUserStore((state) =>
+                      state.users.find((u) => u.id === id)
+                    )?.name || "Anonymous";
+
+                  console.log(fileOffers);
+
+                  return fileOffers.map(({ id, name, size, ownerId }) => (
+                    <div
+                      className="filelistbox"
+                      style={{
+                        border: "1px solid var(--accent-major)",
+                        borderRadius: "0.5em",
+                      }}
+                      key={id}
                     >
-                      <div
-                        className="filelistcontainer"
-                        style={{ height: "auto" }}
-                      >
-                        {fileOffers.map(({ id, name, size, ownerId }) => (
-                          <div className="filelistbox" key={id}>
-                            <div className="horizontal">
-                              <div style={{ paddingRight: "1em" }}>
-                                <h5>{name}</h5>
-                                <p>{fancyBytes(size)}</p>
-                              </div>
-                              <button
-                                onClick={() =>
-                                  downloadManagerInstance.requestFile(
-                                    ownerId,
-                                    id
-                                  )
-                                }
-                              >
-                                Request
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="horizontal">
+                        <h2>{name}</h2>
+                        <div
+                          style={{
+                            paddingLeft: "1em",
+                            paddingRight: "1em",
+                          }}
+                        >
+                          <h5>sent by {userName}</h5>
+                          <p>{fancyBytes(size)}</p>
+                        </div>
+                        <button
+                          onClick={() =>
+                            downloadManagerInstance.requestFile(ownerId, id)
+                          }
+                        >
+                          Request
+                        </button>
                       </div>
-                    </CollapsibleContainer>
-                  </div>
-                ))}
+                    </div>
+                  ));
+                })}
             </div>
           </CollapsibleContainer>
           <CollapsibleContainer

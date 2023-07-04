@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import shortid from "shortid";
 import { BaseRoomConfig, Room, TorrentRoomConfig, joinRoom } from "trystero";
 // import { FirebaseRoomConfig, Room, joinFirebaseRoom as joinRoom } from "trystero";
+
 import MainModal from "./MainModal";
 import "./assets/App.css";
 import { isRtcSupported } from "./helpers/helpers";

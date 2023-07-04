@@ -68,7 +68,7 @@ export default class ChatManager {
     const messagesToSend = users.map(async ({ id, pubKey }) => {
       if (pubKey) {
         await encryptMessage(pubKey, msgString).then((encodedMessage) => {
-          this.sendChatAction(encodedMessage, [id]);
+          this.sendChatAction(encodedMessage, id);
         });
       }
     });
