@@ -32,7 +32,7 @@ export function ChatView(props: { chatManagerInstance: ChatManager }) {
           })}
       </div>
       <div className="horizontal">
-        <input
+        <input //TODO: multiline toggle
           ref={messageBox}
           id="userTextBox"
           className="textbox"

@@ -1,8 +1,8 @@
 import * as base64 from "byte-base64";
 
 // Function to generate a public-private key pair
-export async function generateKeyPair() {
-  const keyPair = await window.crypto.subtle.generateKey(
+export const generateKeyPair = () =>
+  window.crypto.subtle.generateKey(
     {
       name: "RSA-OAEP",
       modulusLength: 2048,
@@ -13,39 +13,38 @@ export async function generateKeyPair() {
     ["encrypt", "decrypt"]
   );
 
-  return keyPair;
-}
-
 // Function to encrypt a message using the public key
-export async function encryptMessage(
+export const encryptMessage = (
   publicKey: CryptoKey,
   message: string | undefined
-) {
-  const encodedMessage = new TextEncoder().encode(message);
-  const encryptedBuffer = await window.crypto.subtle.encrypt(
-    {
-      name: "RSA-OAEP",
-    },
-    publicKey,
-    encodedMessage
+) =>
+  new Promise<string>((resolve, _) =>
+    resolve(base64.bytesToBase64(new TextEncoder().encode(message)))
   );
-  const encodedArray = base64.bytesToBase64(new Uint8Array(encryptedBuffer));
-  return encodedArray;
-}
 
 // Function to decrypt a message using the private key
-export async function decryptMessage(
+export const decryptMessage = (
   privateKey: CryptoKey,
   encryptedMessage: string
-) {
-  const encryptedBuffer = base64.base64ToBytes(encryptedMessage);
-  const decryptedBuffer = await window.crypto.subtle.decrypt(
-    {
-      name: "RSA-OAEP",
-    },
-    privateKey,
-    encryptedBuffer
+) =>
+  new Promise<string>((resolve, _) =>
+    resolve(new TextDecoder().decode(base64.base64ToBytes(encryptedMessage)))
   );
-  const decryptedMessage = new TextDecoder().decode(decryptedBuffer);
-  return decryptedMessage;
-}
+
+//* flow description
+// 1. bob send alice public key
+//     - sendAlice(kyber.keyPair().publicKey)
+// 2. alice generate cyphertext/shared secret from bob's public key
+//     - const {cyphertext, secret} = encrypt(bobPublicKey)
+//     - sendBob(cyphertext)
+// 3. bob take cypertext and generate the same shared secret
+//     - const secret = decrypt(aliceCyphertext)
+
+//tools
+
+//example pool
+// tests here are a good example, but not 100% sure how to link it to symmcrypt https://github.com/fisherstevenk/crystals-kyber-ts/blob/main/tests/kyber768.service.spec.ts
+// complicated but good, requires a server (?) https://www.npmjs.com/package/microtunnel-client
+// large pq crypto library: https://www.npmjs.com/package/pqcrypto
+
+//https://github.com/cyph/pqcrypto.js/tree/master/packages

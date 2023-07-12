@@ -120,9 +120,9 @@ function App() {
   const [room, setRoom] = useState<Room | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
 
-  const bootStrapRoom = (id: string, roomPassword?: string) => {
+  const bootStrapRoom = async (id: string, roomPassword?: string) => {
     if (id && !room) {
-      const newRoom = joinRoom(
+      const newRoom = await joinRoom(
         { ...defaultRoomConfig, password: roomPassword },
         id
       );

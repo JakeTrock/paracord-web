@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "e2e":"npx playwright test --headed --timeout=60000"
   },
   "dependencies": {
     "@radix-ui/react-tabs": "^1.0.4",
@@ -14,7 +15,6 @@
     "dayjs": "^1.11.8",
     "dompurify": "^3.0.3",
     "idb": "^7.1.1",
-    "kyber-crystals": "^1.0.6",
     "mdi-preact": "^9.2.0",
     "preact": "^10.13.1",
     "react-drag-drop-files": "^2.3.10",
@@ -24,6 +24,7 @@
     "zustand": "^4.3.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.35.1",
     "@preact/preset-vite": "^2.5.0",
     "@types/dompurify": "^3.0.2",
     "@types/shortid": "^0.0.29",

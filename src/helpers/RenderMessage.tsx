@@ -106,7 +106,7 @@ export default function RenderMessage(props: {
                     const textBox = document.getElementById(
                       "userTextBox"
                     ) as HTMLFormElement;
-                    if (textBox) textBox.value += `>>${message.id}`;
+                    if (textBox) textBox.value += `>>${message.id} `;
                   }}
                 >
                   <Reply />

@@ -14,6 +14,8 @@ export default class UserManager {
   constructor({ room, roomId }: { room: Room; roomId: string }) {
     this.roomId = roomId;
 
+    console.log(room);
+
     const [sendName, getName] = room.makeAction<string>("name");
     const [sendUserKey, getUserKey] = room.makeAction<string>("pubkey"); //seperated to save bandwidth
 
