@@ -66,8 +66,6 @@ export function DownloadView(props: {
                       state.users.find((u) => u.id === id)
                     )?.name || "Anonymous";
 
-                  console.log(fileOffers);
-
                   return fileOffers.map(({ id, name, size, ownerId }) => (
                     <div
                       className="filelistbox"

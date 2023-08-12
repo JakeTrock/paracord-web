@@ -1,3 +1,5 @@
+import { Keys } from "pqc-kyber";
+
 export type FileMetaData = {
   id: string;
   owner?: string;
@@ -9,7 +11,8 @@ export interface User {
   id: string;
   roomId: string;
   active: boolean;
-  pubKey?: CryptoKey;
+  quantumSend?: Uint8Array;
+  quantumRecv?: Uint8Array;
   name: string | "Anonymous";
 }
 
@@ -37,6 +40,6 @@ export interface FileProgress {
 }
 
 export interface Persona {
-  keyPair: CryptoKeyPair | undefined;
+  keyPair: Keys | undefined;
   name: string | "Anonymous";
 }

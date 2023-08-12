@@ -5,6 +5,7 @@ import { BaseRoomConfig, Room, TorrentRoomConfig, joinRoom } from "trystero";
 
 import MainModal from "./MainModal";
 import "./assets/App.css";
+import { encryptDecrypt } from "./helpers/cryptoSuite";
 import { isRtcSupported } from "./helpers/helpers";
 import pcdLogo from "/logo.svg";
 
@@ -123,7 +124,7 @@ function App() {
   const bootStrapRoom = async (id: string, roomPassword?: string) => {
     if (id && !room) {
       const newRoom = await joinRoom(
-        { ...defaultRoomConfig, password: roomPassword },
+        { ...defaultRoomConfig, password: roomPassword, encryptDecrypt },
         id
       );
       setRoomId(id);

@@ -1,3 +1,4 @@
+import * as kyber from "pqc-kyber";
 import { Room } from "trystero";
 import { sendSystemMessage } from "../helpers/helpers";
 import { useProgressStore } from "../stateManagers/downloadManagers/progressManager";
@@ -7,23 +8,20 @@ import { usePersonaStore } from "../stateManagers/userManagers/personaStore";
 import { useUserStore } from "../stateManagers/userManagers/userStore";
 
 export default class UserManager {
-  private roomId;
+  //TODO: re-add kyber-crystals pqc
   private sendName;
-  private sendUserKey;
+  private sendEncryptionInfo;
 
   constructor({ room, roomId }: { room: Room; roomId: string }) {
-    this.roomId = roomId;
-
-    console.log(room);
-
-    const [sendName, getName] = room.makeAction<string>("name");
-    const [sendUserKey, getUserKey] = room.makeAction<string>("pubkey"); //seperated to save bandwidth
+    const [sendName, getName] = room.makeAction("name"); //TODO: maybe encrypt later
+    const [sendEncryptionInfo, getEncryptionInfo] = room.makeAction("encReq");
+    const [sendProcessedKey, getProcessedKey] = room.makeAction("encProc");
 
     this.sendName = sendName;
-    this.sendUserKey = sendUserKey;
+    this.sendEncryptionInfo = sendEncryptionInfo;
 
-    room.onPeerJoin(async (id) => {
-      this.syncInfo();
+    room.onPeerJoin(async (id: string) => {
+      this.syncInfo(id);
       useUserStore
         .getState()
         .addUser({ id, roomId, active: true, name: "Anonymous" });
@@ -31,11 +29,11 @@ export default class UserManager {
       sendSystemMessage(roomId, `${id} joined the room`);
     });
 
-    room.onPeerLeave((id) => {
+    room.onPeerLeave((id: string) => {
       useUserStore.getState().updateUser(id, { active: false });
 
       const peerOffers = useOfferStore.getState().requestableDownloads[id];
-      peerOffers?.forEach((offer) =>
+      peerOffers?.forEach((offer: { id: string }) =>
         useProgressStore.getState().deleteProgress(offer.id)
       );
 
@@ -44,32 +42,53 @@ export default class UserManager {
       sendSystemMessage(roomId, `${id} left the room`);
     });
 
-    getName((name, id) => {
+    getName((name: string, id: string) => {
       useUserStore.getState().updateUser(id, { name: name });
     });
 
-    getUserKey(async (publicKey, id) => {
-      if (publicKey) {
-        const importedKey = await window.crypto.subtle.importKey(
-          "jwk",
-          publicKey as JsonWebKey,
-          { name: "RSA-OAEP", hash: { name: "SHA-256" } },
-          true,
-          ["encrypt"]
-        );
-        useUserStore.getState().updateUser(id, { pubKey: importedKey });
+    getEncryptionInfo(async (key: Uint8Array, id: string) => {
+      if (!key) {
+        return;
+      }
+
+      try {
+        const { ciphertext, sharedSecret } = await kyber.encapsulate(key);
+        useUserStore.getState().updateUser(id, { quantumSend: sharedSecret });
+        sendProcessedKey(ciphertext, id);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+
+    getProcessedKey(async (cyphertext: Uint8Array, id: string) => {
+      if (!cyphertext) {
+        return;
+      }
+      const activePersona = usePersonaStore.getState().persona;
+      if (activePersona) {
+        this.sendName(activePersona.name);
+        if (activePersona.keyPair) {
+          const key = kyber.decapsulate(
+            cyphertext,
+            activePersona.keyPair.secret
+          );
+          try {
+            useUserStore.getState().updateUser(id, { quantumRecv: key });
+          } catch (e) {
+            console.error(e);
+          }
+        }
       }
     });
   }
 
-  syncInfo = async () => {
+  syncInfo = async (id?: string) => {
+    //ID is only defined if initiating connection
     const activePersona = usePersonaStore.getState().persona;
     if (activePersona) {
       this.sendName(activePersona.name);
       if (activePersona.keyPair) {
-        await window.crypto.subtle
-          .exportKey("jwk", activePersona.keyPair.publicKey)
-          .then((publicKeyJwk) => this.sendUserKey(publicKeyJwk as string));
+        await this.sendEncryptionInfo(activePersona.keyPair.pubkey, id);
       }
     }
   };
@@ -79,10 +98,13 @@ export default class UserManager {
     this.syncInfo();
   };
 
-  setEncryptionInfo = (info: CryptoKeyPair) => {
-    usePersonaStore.getState().updatePersona({ keyPair: info });
-    this.syncInfo();
-  };
+  // setEncryptionInfo = (info: {
+  //   privateKey: Uint8Array;
+  //   publicKey: Uint8Array;
+  // }) => {
+  //   usePersonaStore.getState().updatePersona({ keyPair: info as Keys });
+  //   this.syncInfo();
+  // };
 
   createPersona = async () => {
     await usePersonaStore.getState().resetPersona();

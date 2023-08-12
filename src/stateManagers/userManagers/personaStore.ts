@@ -15,13 +15,11 @@ export const usePersonaStore = create<PersonaStore>((set) => ({
   },
   updatePersona: (updates: Partial<Persona>) =>
     set((state) => ({ persona: { ...state.persona, ...updates } })),
-  resetPersona: async () =>
-    await generateKeyPair().then((kp) =>
-      set((state) => ({
-        persona: {
-          name: "Anonymous",
-          keyPair: kp,
-        },
-      }))
-    ),
+  resetPersona: () =>
+    set((state) => ({
+      persona: {
+        name: "Anonymous",
+        keyPair: generateKeyPair(),
+      },
+    })),
 }));

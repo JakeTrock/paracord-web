@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { selfId } from "trystero";
 import RenderMessage from "../helpers/RenderMessage";
+import { Message, Persona } from "../helpers/types";
 import { useMessageStore } from "../stateManagers/messageStore";
 import { usePersonaStore } from "../stateManagers/userManagers/personaStore";
 import { useUserStore } from "../stateManagers/userManagers/userStore";
@@ -9,8 +10,12 @@ import { useUserStore } from "../stateManagers/userManagers/userStore";
 dayjs.extend(relativeTime);
 
 export default function Messages() {
-  const messageQueue = useMessageStore((store) => store.messages);
-  const yourName = usePersonaStore((state) => state.persona.name);
+  const messageQueue = useMessageStore(
+    (store: { messages: Message[] }) => store.messages
+  );
+  const yourName = usePersonaStore(
+    (state: { persona: Persona }) => state.persona.name
+  );
 
   //TODO: infinite scroll, get scroll posn and request more messages if 100 from top
   return (

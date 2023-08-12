@@ -24,7 +24,6 @@ const formatMessage = (message: string) => {
 };
 
 export default function RenderMessage(props: {
-  //TODO: de-bubble messages
   message: Message;
   sentByName: string;
   index: number;
@@ -32,7 +31,6 @@ export default function RenderMessage(props: {
 }) {
   const { message, index, isLast, sentByName } = props;
   const lastMessage = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (isLast && lastMessage.current)
       lastMessage.current.scrollIntoView({ behavior: "smooth", block: "end" });

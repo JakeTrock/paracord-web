@@ -1,25 +1,26 @@
-import streamSaver from "streamsaver";
 import { Room, selfId } from "trystero";
-import { decryptMessage, encryptMessage } from "../helpers/cryptoSuite";
 import { sendSystemMessage } from "../helpers/helpers";
 import { FileMetaData, FileOffer } from "../helpers/types";
 import { useProgressStore } from "../stateManagers/downloadManagers/progressManager";
 import { useRealFiles } from "../stateManagers/downloadManagers/realFileManager";
 import { useOfferStore } from "../stateManagers/downloadManagers/requestManager";
 import { useClientSideUserTraits } from "../stateManagers/userManagers/clientSideUserTraits";
-import { usePersonaStore } from "../stateManagers/userManagers/personaStore";
 import { useUserStore } from "../stateManagers/userManagers/userStore";
 
 export default class DownloadManager {
-  private sendFileRequest: (id: string, ids?: string | string[]) => void;
-  private sendFileOffer: (files: string, ids?: string | string[]) => void;
+  private sendFileRequest: (
+    id: string,
+    ids?: string | string[]
+  ) => Promise<any[]>;
+  private sendFileOffer: (
+    files: FileOffer[],
+    ids?: string | string[]
+  ) => Promise<any[]>;
 
   constructor({ room, roomId }: { room: Room; roomId: string }) {
-    const [sendFile, getFile, onFileProgress] =
-      room.makeAction<File>("transfer");
-    const [sendFileRequest, getFileRequest] =
-      room.makeAction<string>("fileRequest");
-    const [sendFileOffer, getFileOffer] = room.makeAction<string>("fileOffer");
+    const [sendFile, getFile, onFileProgress] = room.makeAction("transfer");
+    const [sendFileRequest, getFileRequest] = room.makeAction("fileRequest");
+    const [sendFileOffer, getFileOffer] = room.makeAction("fileOffer");
     this.sendFileRequest = sendFileRequest;
     this.sendFileOffer = sendFileOffer;
 
@@ -30,76 +31,51 @@ export default class DownloadManager {
         .updateProgress(processedMeta.id, { progress });
     });
 
-    getFileRequest((data, userId) => {
-      const currentPersona = usePersonaStore.getState().persona;
-      const privateKey =
-        currentPersona.keyPair && currentPersona.keyPair.privateKey;
-      if (!privateKey) return console.error("Could not find private key");
-
-      decryptMessage(privateKey, data)
-        .then(async (id) => {
-          const realFiles = useRealFiles.getState().realFiles;
-          if (realFiles && id in realFiles) {
-            const currentFile = realFiles[id];
-            useProgressStore.getState().addProgress({
-              id,
-              name: currentFile.name,
-              progress: 0,
-              toMe: false,
-            });
-            sendFile(
-              //TODO: encrypt
-              currentFile,
-              userId,
-              {
-                id,
-                name: currentFile.name,
-                size: currentFile.size,
-              },
-              (progress, fromUser) =>
-                useProgressStore.getState().updateProgress(id, { progress })
-            );
-          }
-        })
-        .catch((e) => console.error(e));
+    getFileRequest((fileId, userId) => {
+      const realFiles = useRealFiles.getState().realFiles;
+      if (realFiles && fileId in realFiles) {
+        const currentFile = realFiles[fileId];
+        useProgressStore.getState().addProgress({
+          id: fileId,
+          name: currentFile.name,
+          progress: 0,
+          toMe: false,
+        });
+        sendFile(
+          currentFile,
+          userId,
+          {
+            id: fileId,
+            name: currentFile.name,
+            size: currentFile.size,
+          },
+          (progress, fromUser) =>
+            useProgressStore.getState().updateProgress(fileId, { progress })
+        );
+      }
     });
 
-    getFile((file, id, metadata) => {
+    getFile((success, id, metadata) => {
       const processedMeta = metadata as FileMetaData;
+      console.log(useProgressStore.getState().progressQueue);
+      console.log(processedMeta);
       useProgressStore.getState().deleteProgress(processedMeta.id);
-
-      const fileStream = streamSaver.createWriteStream(processedMeta.name, {
-        //TODO: filesize is limited to 4g, how can this be surpassed?
-        //TODO: may need to polyfill at some point
-        size: processedMeta.size, // (optional filesize)
-      });
-      const procFile = new Response(file).body;
-      if (procFile) procFile.pipeTo(fileStream).catch(console.error);
     });
 
     getFileOffer(async (data, id) => {
       if (useClientSideUserTraits.getState().mutedUsers[id] !== true) {
-        const currentPersona = usePersonaStore.getState().persona;
-        const privateKey =
-          currentPersona.keyPair && currentPersona.keyPair.privateKey;
-        if (!privateKey) return console.error("Could not find private key");
-        await decryptMessage(privateKey, data)
-          .then((data) =>
-            useOfferStore
-              .getState()
-              .updateOrAddRequestable(id, JSON.parse(data))
-          )
-          .catch((e) => console.error(e));
+        useOfferStore.getState().updateOrAddRequestable(id, data);
+
         sendSystemMessage(roomId, `${id} offered you files`);
       }
     });
   }
 
-  public requestFile = async (fromUser: string, id: string) => {
+  public requestFile = async (fromUser: string, fileId: string) => {
     const requestableFiles =
       useOfferStore.getState().requestableDownloads[fromUser];
     const findName =
-      requestableFiles && requestableFiles.find((f) => f.id === id);
+      requestableFiles && requestableFiles.find((f) => f.id === fileId);
     if (findName) {
       useProgressStore.getState().addProgress({
         id: findName.id,
@@ -107,16 +83,7 @@ export default class DownloadManager {
         progress: 0,
         toMe: true,
       });
-
-      const pubKey = useUserStore
-        .getState()
-        .users.find((u) => u.id === fromUser)?.pubKey;
-
-      if (pubKey) {
-        await encryptMessage(pubKey, id).then((encodedMessage) =>
-          this.sendFileRequest(encodedMessage, fromUser)
-        );
-      }
+      this.sendFileRequest(fileId, fromUser);
     } else {
       alert("file not found!");
     }
@@ -133,27 +100,11 @@ export default class DownloadManager {
         size: file.size,
       })
     );
-    const msgString = JSON.stringify(files);
 
-    const offersToSend = useUserStore
-      .getState()
-      .users.map(async ({ id: usrId, pubKey }) => {
-        if (pubKey) {
-          console.log(pubKey, msgString, usrId);
-          await encryptMessage(pubKey, msgString)
-            .then(
-              (encodedMessage) => {
-                console.log(encodedMessage);
-                this.sendFileOffer(encodedMessage, usrId);
-              } //TODO: error on multiple files.
-              // Must implement chunked encryption trystero-side
-              //https://www.npmjs.com/package/kyber-crystals
-            )
-            .catch((e) => console.error(e.Message));
-        }
-      });
-    console.log(offersToSend);
-    await Promise.all(offersToSend).catch((e) => console.error(e));
+    const recipientUsers = useUserStore.getState().users.map((user) => user.id);
+
+    //await
+    this.sendFileOffer(files, recipientUsers).catch((e) => console.error(e));
   };
 
   public removeRealFile = (id: string) => {
