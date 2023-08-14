@@ -1,4 +1,4 @@
-import { useRef } from "preact/hooks";
+import { useRef, useState } from "preact/hooks";
 import ChatManager from "../TrysteroManagers/chatManager";
 import { useClientSideUserTraits } from "../stateManagers/userManagers/clientSideUserTraits";
 import { useUserStore } from "../stateManagers/userManagers/userStore";
@@ -6,8 +6,9 @@ import Messages from "./messages";
 
 export function ChatView(props: { chatManagerInstance: ChatManager }) {
   const { chatManagerInstance } = props;
-  const messageBox = useRef<HTMLInputElement>(null);
+  const messageBox = useRef<HTMLTextAreaElement>(null);
   const typingUsers = useClientSideUserTraits((state) => state.typingUsers);
+  const [multilineInput, setMultilineInput] = useState(false);
   const userNames = useUserStore((state) =>
     state.users.map((p) => {
       return { id: p.id, name: p.name };
@@ -32,28 +33,38 @@ export function ChatView(props: { chatManagerInstance: ChatManager }) {
           })}
       </div>
       <div className="horizontal">
-        <input //TODO: multiline toggle
+        <button
+          onClick={() => setMultilineInput(!multilineInput)}
+          disabled={!uiInteractive}
+          type="button"
+        >
+          {multilineInput ? "⬆" : "⬇"}
+        </button>
+        <textarea //TODO: markdown support
           ref={messageBox}
           id="userTextBox"
           className="textbox"
+          rows={multilineInput ? 5 : 1}
           name="userInput"
           type="text"
           autoComplete="off"
           placeholder="Type your message"
           disabled={!uiInteractive}
           onKeyDown={(e) => {
-            if (
-              e.key === "Enter" &&
-              messageBox.current !== null &&
-              chatManagerInstance
-            ) {
-              chatManagerInstance.sendChat(messageBox.current.value);
-              messageBox.current.value = "";
-            } else {
-              chatManagerInstance.sendTypingIndicator(true);
+            if (messageBox.current !== null && chatManagerInstance) {
+              if (
+                e.key === "Enter" &&
+                e.shiftKey === false &&
+                !multilineInput
+              ) {
+                chatManagerInstance.sendChat(messageBox.current.value);
+                messageBox.current.value = "";
+              } else {
+                chatManagerInstance.sendTypingIndicator(true);
+              }
             }
           }}
-          onfocusout={(e) => chatManagerInstance.sendTypingIndicator(false)}
+          onfocusout={() => chatManagerInstance.sendTypingIndicator(false)}
         />
         <button
           onClick={() => {

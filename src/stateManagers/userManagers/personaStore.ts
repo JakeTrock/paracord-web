@@ -16,7 +16,7 @@ export const usePersonaStore = create<PersonaStore>((set) => ({
   updatePersona: (updates: Partial<Persona>) =>
     set((state) => ({ persona: { ...state.persona, ...updates } })),
   resetPersona: () =>
-    set((state) => ({
+    set((_state) => ({
       persona: {
         name: "Anonymous",
         keyPair: generateKeyPair(),

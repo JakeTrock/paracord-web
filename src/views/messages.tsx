@@ -19,7 +19,7 @@ export default function Messages() {
 
   //TODO: infinite scroll, get scroll posn and request more messages if 100 from top
   return (
-    <div className="filelistcontainer">
+    <div className="filelistcontainer" style={{ whiteSpace: "pre-line" }}>
       {messageQueue
         .sort((a, b) => a.recievedAt - b.recievedAt)
         .map((message, index) => (

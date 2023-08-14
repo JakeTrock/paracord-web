@@ -24,7 +24,7 @@ export default class DownloadManager {
     this.sendFileRequest = sendFileRequest;
     this.sendFileOffer = sendFileOffer;
 
-    onFileProgress((progress, id, metadata) => {
+    onFileProgress((progress, _id, metadata) => {
       const processedMeta = metadata as FileMetaData;
       useProgressStore
         .getState()
@@ -49,13 +49,13 @@ export default class DownloadManager {
             name: currentFile.name,
             size: currentFile.size,
           },
-          (progress, fromUser) =>
+          (progress, _fromUser) =>
             useProgressStore.getState().updateProgress(fileId, { progress })
         );
       }
     });
 
-    getFile((success, id, metadata) => {
+    getFile((_success, _id, metadata) => {
       const processedMeta = metadata as FileMetaData;
       console.log(useProgressStore.getState().progressQueue);
       console.log(processedMeta);
